@@ -16,20 +16,39 @@ class User(AbstractUser):
         ("CS", "Computer Science")
     ]
 
+    YEAR_LEVEL_CHOICE = [
+        ("1", "1st Year"),
+        ("2", "2nd Year"),
+        ("3", "3rd Year"),
+        ("4", "4th Year")
+    ]
+
+    COURSE_CHOICE = [
+        ("BSIT", "Bachelor of Science in Information Technology"),
+        ("BSCS", "Bachelor of Science in Computer Science")
+    ]
+
     email = models.EmailField(unique=True)
+    role = models.CharField(default='ST', choices=ROLE_CHOICES, max_length=10)
+    address = models.TextField(blank=True, null=True)
+    contact_number = models.CharField(max_length=100, blank=True, null=True)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    role = models.CharField(choices=ROLE_CHOICES, max_length=100)
-    department = models.CharField(choices=DEPARTMENT_CHOICE, max_length=100)
+
+    student_id = models.CharField(max_length=100, blank=True, null=True, unique=True)
+    course = models.CharField(choices=COURSE_CHOICE, max_length=100, blank=True, null=True)
+    year_level = models.CharField(max_length=1, choices=YEAR_LEVEL_CHOICE, blank=True, null=True)
+    section = models.CharField(max_length=10, blank=True, null=True)
+
+    department = models.CharField(choices=DEPARTMENT_CHOICE, max_length=10, blank=True, null=True)
     specialization = models.CharField(max_length=100, blank=True, null=True)
-    student_id = models.CharField(blank=True, null=True)
-    employee_id = models.CharField(blank=True, null=True)
+    employee_id = models.CharField(max_length=100, blank=True, null=True, unique=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username", "first_name", "last_name"]
 
-    def __str__(self):
-        return f"{self.first_name} {self.last_name} ({self.role})"
+def __str__(self):
+    return f"{self.first_name} {self.last_name} ({self.get_role_display()})"
 
 
 class ConsultationSlot(models.Model):
