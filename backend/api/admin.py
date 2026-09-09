@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User, Student, Instructor, ConsultationSlot
+from .models import User, Student, Instructor, ConsultationSlot, Appointment
 
 # Register your models here.
 
@@ -31,3 +31,14 @@ class ConsultationSlotAdmin(admin.ModelAdmin):
     list_display = ['teacher', 'date', 'start_time', 'end_time', 'max_capacity', 'location', 'is_available', 'created_at']
     list_filter = ['is_available', 'date', 'teacher']
     search_fields = ['teacher__email', 'teacher__first_name', 'teacher__last_name']
+
+
+@admin.register(Appointment)
+class AppointmentAdmin(admin.ModelAdmin):
+    list_display = ['student', 'slot', 'status', 'reason', 'rejection_reason', 'created_at', 'updated_at']
+    list_filter = ['status', 'created_at', 'slot__teacher']
+    search_fields = ['student__first_name', 'student__last_name', 'slot__teacher__first_name']
+
+    @admin.display(description="Instructor")
+    def get_teacher(self, obj):
+        return obj.slot.teacher
