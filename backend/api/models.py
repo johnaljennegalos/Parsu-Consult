@@ -85,3 +85,16 @@ class Notification(models.Model):
     message = models.TextField(blank=True, null=True)
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class Student(User):
+    class Meta:
+        proxy = True
+        verbose_name = "Student"
+        verbose_name_plural = "Students"
+
+class Instructor(User):
+    class Meta:
+        proxy = True
+        verbose_name = "Instructor"
+        verbose_name_plural = "Instructors"
