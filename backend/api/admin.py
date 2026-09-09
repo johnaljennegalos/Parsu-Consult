@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User, Student, Instructor
+from .models import User, Student, Instructor, ConsultationSlot
 
 # Register your models here.
 
@@ -24,3 +24,10 @@ class InstructorAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         return super().get_queryset(request).filter(role='IN')
+
+
+@admin.register(ConsultationSlot)
+class ConsultationSlotAdmin(admin.ModelAdmin):
+    list_display = ['teacher', 'date', 'start_time', 'end_time', 'max_capacity', 'location', 'is_available', 'created_at']
+    list_filter = ['is_available', 'date', 'teacher']
+    search_fields = ['teacher__email', 'teacher__first_name', 'teacher__last_name']
