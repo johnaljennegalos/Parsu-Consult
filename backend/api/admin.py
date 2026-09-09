@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User, Student, Instructor, ConsultationSlot, Appointment
+from .models import User, Student, Instructor, ConsultationSlot, Appointment, Notification
 
 # Register your models here.
 
@@ -42,3 +42,15 @@ class AppointmentAdmin(admin.ModelAdmin):
     @admin.display(description="Instructor")
     def get_teacher(self, obj):
         return obj.slot.teacher
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ['recipient', 'appointment', 'title', 'message', 'is_read', 'created_at']
+    list_filter = ["is_read", "created_at", "recipient__role", "recipient__department"]
+    search_fields = [
+        "recipient__email",
+        "recipient__first_name",
+        "recipient__last_name",
+        "title",
+        "message",
+    ]
