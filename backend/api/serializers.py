@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
-from .models import User, ConsultationSlot
+from .models import User, ConsultationSlot, Appointment
 
 
 class UserGeneralSerializer(serializers.ModelSerializer):
@@ -110,11 +110,46 @@ class ConsultationSlotDetailSerializer(serializers.ModelSerializer):
     teacher = UserGeneralSerializer(read_only=True)
 
     class Meta:
-        model = User
+        model = ConsultationSlot
         fields = [
             'id',
             'employee_id',
             'first_name',
             'last_name',
             'department'
+        ]
+
+
+
+class AppointmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Appointment
+        fields = [
+            'id',
+            'student',
+            'slot',
+            'status',
+            'reason',
+        ]
+
+        extra_kwargs = {
+            'student' : {'read_only' : True}
+        }
+
+class AppointmentDetailSerializer(serializers.ModelSerializer):
+    student = UserGeneralSerializer(read_only=True)
+
+    slot = ConsultationSlotDetailSerializer(read_only=True)
+
+    class Meta:
+        model = Appointment
+        fields = [
+            'id',
+            'student',
+            'slot',
+            'status',
+            'reason',
+            'rejection_reason',
+            'created_at',
+            'updated_at',
         ]
