@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
-from .models import User
+from .models import User, ConsultationSlot
 
 
 class UserGeneralSerializer(serializers.ModelSerializer):
@@ -87,3 +87,34 @@ class InstructorRegistrationSerializer(serializers.ModelSerializer):
         validated_data['role'] = 'IN'
         user = User.objects.create_user(**validated_data)
         return user
+
+# The instructor is injected automatically in ViewSet when calling .perform_create(serializer).
+class ConsultationSlotSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ConsultationSlot
+        fields = [
+            'id',
+            'teacher',
+            'start_time',
+            'end_time',
+            'max_capacity',
+            'location',
+        ]
+
+        extra_kwargs = {
+            'teacher' : {'read_only' : True}
+        }
+
+
+class ConsultationSlotDetailSerializer(serializers.ModelSerializer):
+    teacher = UserGeneralSerializer(read_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'employee_id',
+            'first_name',
+            'last_name',
+            'department'
+        ]
