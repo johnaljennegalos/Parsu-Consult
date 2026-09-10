@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
-from .models import User, ConsultationSlot, Appointment
+from .models import User, ConsultationSlot, Appointment, Notification
 
 
 class UserGeneralSerializer(serializers.ModelSerializer):
@@ -153,3 +153,26 @@ class AppointmentDetailSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
         ]
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    appointment = AppointmentDetailSerializer(read_only=True)
+
+    class Meta:
+        model = Notification
+        fields = {
+            'id',
+            'recipient',
+            'appointment',
+            'title',
+            'message',
+            'is_read',
+            'created_at'
+        }
+
+        extra_kwargs = {
+            'recipient' : {'read_only' : True},
+            'title' : {'read_only' : True},
+            'message' : {'read_only' : True},
+            'is_read' : {'read_only' : True}
+        }
