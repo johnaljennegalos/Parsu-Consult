@@ -20,7 +20,7 @@ class SerializerTestCase(TestCase):
 
     def setUp(self):
         self.student_user = User.objects.create_user(
-            email="galos123.pbox@parsu.edu.ph",
+            email="galos123@example.com",
             username='el patron',
             password="galos123",
             first_name='John Aljenne',
@@ -33,7 +33,7 @@ class SerializerTestCase(TestCase):
         )
 
         self.instructor_user = User.objects.create_user(
-            email='obias223.pbox@parsu.edu.ph',
+            email='obias223@test.com',
             password='obias123',
             username='gringo',
             first_name='John',
@@ -46,7 +46,7 @@ class SerializerTestCase(TestCase):
     def test_student_registration_serializer(self):
         payload = {
             'student_id' : '82387420',
-            'email' : 'romero231.pbox@parsu.edu.ph',
+            'email' : 'romero231@example.com',
             'first_name' : 'Jane',
             'last_name' : 'Romero',
             'password' : 'prettyhello321',
@@ -66,7 +66,7 @@ class SerializerTestCase(TestCase):
     def test_instructor_registration_serializer(self):
         payload = {
             'employee_id' : '272394893',
-            'email' : 'patron.pbox@parsu.edu.ph',
+            'email' : 'patron@test.com',
             'username' : 'patron',
             'first_name' : 'John',
             'last_name' : 'Galos',
@@ -84,7 +84,7 @@ class SerializerTestCase(TestCase):
     def test_user_general_serializer_omits_password(self):
         serializer = UserGeneralSerializer(self.student_user)
         self.assertNotIn('password', serializer.data)
-        self.assertEqual(serializer.data['email'], 'galos123.pbox@parsu.edu.ph')
+        self.assertEqual(serializer.data['email'], 'galos123@example.com')
         self.assertEqual(serializer.data['role'], 'ST')
         self.assertEqual(serializer.data['first_name'], 'John Aljenne')
         self.assertEqual(serializer.data['last_name'], 'Galos')
