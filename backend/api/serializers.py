@@ -57,8 +57,10 @@ class StudentRegistrationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data['role'] = 'ST'
-        user = User.objects.create_user(**validated_data)
-        return user
+        if 'username' not in validated_data:
+            validated_data['username'] = validated_data['email']
+        return User.objects.create_user(**validated_data)
+
 
 
 class InstructorRegistrationSerializer(serializers.ModelSerializer):
@@ -85,8 +87,9 @@ class InstructorRegistrationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data['role'] = 'IN'
-        user = User.objects.create_user(**validated_data)
-        return user
+        if 'username' not in validated_data:
+            validated_data['username'] = validated_data['email']
+        return User.objects.create_user(**validated_data)
 
 # The instructor is injected automatically in ViewSet when calling .perform_create(serializer).
 class ConsultationSlotSerializer(serializers.ModelSerializer):
