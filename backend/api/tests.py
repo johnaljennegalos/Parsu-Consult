@@ -62,3 +62,20 @@ class SerializerTestCase(TestCase):
         user = serializer.save()
         self.assertEqual(user.role, 'ST')
         self.assertTrue(user.check_password('prettyhello321'))
+
+    def test_instructor_registration_serializer(self):
+        payload = {
+            'employee_id' : '272394893',
+            'email' : 'patron.pbox@parsu.edu.ph',
+            'username' : 'patron',
+            'first_name' : 'John',
+            'last_name' : 'Galos',
+            'password' : 'elpatron123',
+            'department' : 'CS'
+        }
+
+        serializer = InstructorRegistrationSerializer(data=payload)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        user = serializer.save()
+        self.assertEqual(user.role, 'IN')
+        self.assertTrue(user.check_password('elpatron123'))
