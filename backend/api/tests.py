@@ -79,3 +79,12 @@ class SerializerTestCase(TestCase):
         user = serializer.save()
         self.assertEqual(user.role, 'IN')
         self.assertTrue(user.check_password('elpatron123'))
+
+
+    def test_user_general_serializer_omits_password(self):
+        serializer = UserGeneralSerializer(self.student_user)
+        self.assertNotIn('password', serializer.data)
+        self.assertEqual(serializer.data['email'], 'galos123.pbox@parsu.edu.ph')
+        self.assertEqual(serializer.data['role'], 'ST')
+        self.assertEqual(serializer.data['first_name'], 'John Aljenne')
+        self.assertEqual(serializer.data['last_name'], 'Galos')
