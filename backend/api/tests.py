@@ -88,3 +88,18 @@ class SerializerTestCase(TestCase):
         self.assertEqual(serializer.data['role'], 'ST')
         self.assertEqual(serializer.data['first_name'], 'John Aljenne')
         self.assertEqual(serializer.data['last_name'], 'Galos')
+
+
+    def test_consultation_slot_teacher_read_only(self):
+        payload = {
+            'teacher' : self.instructor_user.id,
+            'start_time' : '09:00:00',
+            'end_time' : '10:00:00',
+            'max_capacity' : '3',
+            'location' : 'IT Faculty Building',
+        }
+
+        serializer = ConsultationSlotSerializer(data=payload)
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        self.assertNotIn('teacher', serializer.validated_data)
