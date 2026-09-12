@@ -103,3 +103,31 @@ class SerializerTestCase(TestCase):
 
         self.assertTrue(serializer.is_valid(), serializer.errors)
         self.assertNotIn('teacher', serializer.validated_data)
+
+
+    def test_notification_patch_only_is_read(self):
+        instance = Notification.objects.create(
+            recipient=self.student_user,
+            is_read=False,
+            message='Original Message',
+            title='OG title',
+        )
+
+        payload = {
+            'recipient' : self.student_user.id,
+            'appointment' : self.instructor_user,
+            'title' : 'Hacked title',
+            'message' : 'Spoofed message',
+            'is_read' : True,
+            'created_at' : '10:00:00'
+        }
+
+        serializer = NotificationSerializer(instance, data=payload, partial=True)
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        self.assertIn('is_read', serializer.validated_data)
+        self.assertEqual(serializer.validated_data['is_read'], True)
+
+        self.assertNotIn('message', serializer.validated_data)
+        self.assertNotIn('title', serializer.validated_data)
+        self.assertNotIn('recipient', serializer.validated_data)

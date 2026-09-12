@@ -1,5 +1,4 @@
 from rest_framework import serializers
-from rest_framework.serializers import ModelSerializer
 from .models import User, ConsultationSlot, Appointment, Notification
 
 
@@ -163,7 +162,7 @@ class NotificationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Notification
-        fields = {
+        fields = [
             'id',
             'recipient',
             'appointment',
@@ -171,11 +170,11 @@ class NotificationSerializer(serializers.ModelSerializer):
             'message',
             'is_read',
             'created_at'
-        }
+        ]
 
         extra_kwargs = {
             'recipient' : {'read_only' : True},
             'title' : {'read_only' : True},
             'message' : {'read_only' : True},
-            'is_read' : {'read_only' : True}
+            # 'is_read' : {'read_only' : True}
         }
