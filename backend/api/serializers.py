@@ -1,5 +1,4 @@
 from rest_framework import serializers
-from rest_framework.serializers import ModelSerializer
 from .models import User, ConsultationSlot, Appointment, Notification
 
 
@@ -57,8 +56,10 @@ class StudentRegistrationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data['role'] = 'ST'
-        user = User.objects.create_user(**validated_data)
-        return user
+        if 'username' not in validated_data:
+            validated_data['username'] = validated_data['email']
+        return User.objects.create_user(**validated_data)
+
 
 
 class InstructorRegistrationSerializer(serializers.ModelSerializer):
@@ -85,8 +86,9 @@ class InstructorRegistrationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data['role'] = 'IN'
-        user = User.objects.create_user(**validated_data)
-        return user
+        if 'username' not in validated_data:
+            validated_data['username'] = validated_data['email']
+        return User.objects.create_user(**validated_data)
 
 # The instructor is injected automatically in ViewSet when calling .perform_create(serializer).
 class ConsultationSlotSerializer(serializers.ModelSerializer):
@@ -160,7 +162,7 @@ class NotificationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Notification
-        fields = {
+        fields = [
             'id',
             'recipient',
             'appointment',
@@ -168,11 +170,11 @@ class NotificationSerializer(serializers.ModelSerializer):
             'message',
             'is_read',
             'created_at'
-        }
+        ]
 
         extra_kwargs = {
             'recipient' : {'read_only' : True},
             'title' : {'read_only' : True},
             'message' : {'read_only' : True},
-            'is_read' : {'read_only' : True}
+            # 'is_read' : {'read_only' : True}
         }
