@@ -107,6 +107,11 @@ class ConsultationSlotSerializer(serializers.ModelSerializer):
             'teacher' : {'read_only' : True}
         }
 
+    def vaidate(self, attrs):
+        if attrs['start_time'] >= attrs['end_time']:
+            raise serializers.ValidationError({"end_time": "End time must be strictly after start time."})
+        return attrs
+
 
 class ConsultationSlotDetailSerializer(serializers.ModelSerializer):
     teacher = UserGeneralSerializer(read_only=True)

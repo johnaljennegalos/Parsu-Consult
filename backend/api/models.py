@@ -37,7 +37,7 @@ class User(AbstractUser):
 
     student_id = models.CharField(max_length=100, blank=True, null=True, unique=True)
     course = models.CharField(choices=COURSE_CHOICE, max_length=100, blank=True, null=True)
-    year_level = models.CharField(max_length=1, choices=YEAR_LEVEL_CHOICE, blank=True, null=True)
+    year_level = models.CharField(max_length=30, choices=YEAR_LEVEL_CHOICE, blank=True, null=True)
     section = models.CharField(max_length=10, blank=True, null=True)
 
     department = models.CharField(choices=DEPARTMENT_CHOICE, max_length=10, blank=True, null=True)
@@ -52,7 +52,7 @@ def __str__(self):
 
 
 class ConsultationSlot(models.Model):
-    teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, limit_choices_to={'role': 'IN'})
+    teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, limit_choices_to={'role': 'IN'}, related_name="consultation_slots")
     date = models.DateField()
     start_time = models.TimeField()
     end_time = models.TimeField()
