@@ -152,10 +152,10 @@ class AppointmentSerializer(serializers.ModelSerializer):
         slot = attrs.get('slot')
 
         if user.role != 'ST':
-            raise serializers.ValidationError('{"detail": "Only students can book consultation slots."}')
+            raise serializers.ValidationError("Only students can book consultation slots.")
 
         with transaction.atomic():
-            locked_slot = ConsultationSlot.objects.select_for_update().get_id(id=slot.id)
+            locked_slot = ConsultationSlot.objects.select_for_update().get(id=slot.id)
 
             if locked_slot.is_deleted or not locked_slot.is_available:
                 raise serializers.ValidationError({"slot": "This consultation slot is no longer available."})

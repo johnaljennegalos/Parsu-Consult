@@ -102,12 +102,22 @@ class Appointment(models.Model):
 
 
 class Notification(models.Model):
-    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    appointment = models.ForeignKey(Appointment, blank=True, null=True, on_delete=models.CASCADE)
-    title = models.CharField(max_length=100, blank=True, null=True)
-    message = models.TextField(blank=True, null=True)
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notifications")
+    appointment = models.ForeignKey(Appointment, blank=True, null=True, on_delete=models.SET_NULL, related_name="notifications")
+    title = models.CharField(max_length=100, blank=True)
+    message = models.TextField(blank=True)
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["recipient", "is_read"]),
+            models.Index(fields=["-created_at"]),
+        ]
+
+    def __str__(self):
+        return f"Notification for {self.recipient.email}: {self.title} [{'Read' if self.is_read else 'Unread'}]"
 
 
 class Student(User):
