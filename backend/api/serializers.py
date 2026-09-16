@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import User, ConsultationSlot, Appointment, Notification
+from django.db import transaction
+from django.db.models import Q
 
 
 class UserGeneralSerializer(serializers.ModelSerializer):
@@ -107,7 +109,7 @@ class ConsultationSlotSerializer(serializers.ModelSerializer):
             'teacher' : {'read_only' : True}
         }
 
-    def vaidate(self, attrs):
+    def validate(self, attrs):
         if attrs['start_time'] >= attrs['end_time']:
             raise serializers.ValidationError({"end_time": "End time must be strictly after start time."})
         return attrs
@@ -140,8 +142,39 @@ class AppointmentSerializer(serializers.ModelSerializer):
         ]
 
         extra_kwargs = {
-            'student' : {'read_only' : True}
+            'student' : {'read_only' : True},
+            'status' : {'read_only' : True}
         }
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        user = request.user
+        slot = attrs.get('slot')
+
+        if user.role != 'ST':
+            raise serializers.ValidationError('{"detail": "Only students can book consultation slots."}')
+
+        with transaction.atomic():
+            locked_slot = ConsultationSlot.objects.select_for_update().get_id(id=slot.id)
+
+            if locked_slot.is_deleted or not locked_slot.is_available:
+                raise serializers.ValidationError({"slot": "This consultation slot is no longer available."})
+
+            active_bookings_count = Appointment.objects.filter(
+                slot=locked_slot
+            ).filter(
+                Q(status='PENDING') | Q(status='APPROVED')
+            ).count()
+
+            if active_bookings_count >= locked_slot.max_capacity:
+                raise serializers.ValidationError({"slot": "This slot has reached its maximum capacity."})
+
+        return attrs
+
+    def create(self, validated_data):
+        validated_data['student'] = self.context['request'].user
+        return super().create(validated_data)
+
 
 class AppointmentDetailSerializer(serializers.ModelSerializer):
     student = UserGeneralSerializer(read_only=True)

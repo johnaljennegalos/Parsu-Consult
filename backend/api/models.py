@@ -47,8 +47,12 @@ class User(AbstractUser):
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username", "first_name", "last_name"]
 
-def __str__(self):
-    return f"{self.first_name} {self.last_name} ({self.get_role_display()})"
+    def __str__(self):
+        return f"{self.first_name} {self.last_name} ({self.get_role_display()})"
+
+    def soft_delete(self, using=None, keep_parents=False):
+        self.is_active = False
+        self.save(update_fields=['is_active'])
 
 
 class ConsultationSlot(models.Model):
@@ -59,7 +63,13 @@ class ConsultationSlot(models.Model):
     max_capacity = models.IntegerField(default=1)
     location = models.CharField(max_length=100)
     is_available = models.BooleanField(default=True)
+    is_deleted = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def soft_delete(self):
+        self.is_deleted = True
+        self.is_available = False
+        self.save()
 
 class Appointment(models.Model):
     APPOINTMENT_STATUS = [
@@ -70,13 +80,26 @@ class Appointment(models.Model):
         ("COMPLETED", "Completed")
     ]
 
-    student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, limit_choices_to={'role': 'ST'})
-    slot = models.ForeignKey(ConsultationSlot, on_delete=models.CASCADE)
+    student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, limit_choices_to={'role': 'ST'}, related_name="appointments")
+    slot = models.ForeignKey(ConsultationSlot, on_delete=models.PROTECT, related_name="appointments")
     status = models.CharField(default="PENDING", choices=APPOINTMENT_STATUS, max_length=100)
-    reason = models.TextField(blank=True, null=True)
-    rejection_reason = models.TextField(blank=True, null=True)
+    reason = models.TextField(blank=True)
+    rejection_reason = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields = ['student', 'slot'],
+                condition=~models.Q(status__in=['CANCELLED', 'REJECTED']),
+                name = 'unique_student_appointment_per_slot'
+            )
+        ]
+
+    def __str__(self):
+        return f"Appointment: {self.student.first_name} -> {self.slot} ({self.status})"
+
 
 class Notification(models.Model):
     recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
