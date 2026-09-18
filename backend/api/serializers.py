@@ -248,3 +248,24 @@ class NotificationSerializer(serializers.ModelSerializer):
             'message' : {'read_only' : True},
             # 'is_read' : {'read_only' : True}
         }
+
+
+class ChangePasswordSerializer(serializers.ModelSerializer):
+    #data will come from views in json request.data
+    old_password = serializers.CharField(required=True, write_only=True)
+    new_password = serializers.CharField(required=True, write_only=True)
+
+    def validate_old_password(self, value):
+        user = self.context['request'].user
+        if not user.check_password(value):
+            raise serializers.ValidationError('Your current password was entered incorrectly')
+
+    def validate_new_password(self, value):
+        validate_password(value, user=self.context['request'].user)
+        return value
+
+    def save(self, **kwargs):
+        user = self.context['request'].user
+        user.set_password(self.validated_data['new_password'])
+        user.save()
+        return user
