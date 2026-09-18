@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import User, ConsultationSlot, Appointment, Notification
 from django.db import transaction
 from django.db.models import Q
+from django.contrib.auth.password_validation import validate_password
 
 
 class UserGeneralSerializer(serializers.ModelSerializer):
@@ -32,6 +33,12 @@ class UserGeneralSerializer(serializers.ModelSerializer):
 
 
 class StudentRegistrationSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(
+        write_only=True,
+        required=True,
+        validators=[validate_password]
+    )
+
     class Meta:
         model = User
         fields = [
@@ -49,7 +56,6 @@ class StudentRegistrationSerializer(serializers.ModelSerializer):
         ]
 
         extra_kwargs = {
-            'password' : {'write_only' : True},
             'student_id' : {'required' : True},
             'course' : {'required' : True},
             'year_level' : {'required' : True},
@@ -65,6 +71,12 @@ class StudentRegistrationSerializer(serializers.ModelSerializer):
 
 
 class InstructorRegistrationSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(
+        write_only=True,
+        required=True,
+        validators=[validate_password]
+    )
+
     class Meta:
         model = User
         fields = [
@@ -81,7 +93,6 @@ class InstructorRegistrationSerializer(serializers.ModelSerializer):
         ]
 
         extra_kwargs = {
-            'password' : {'write_only' : True},
             'employee_id' : {'required' : True},
             'department' : {'required' : True}
         }
@@ -93,6 +104,7 @@ class InstructorRegistrationSerializer(serializers.ModelSerializer):
         return User.objects.create_user(**validated_data)
 
 # The instructor is injected automatically in ViewSet when calling .perform_create(serializer).
+#instructor form post/put/patch
 class ConsultationSlotSerializer(serializers.ModelSerializer):
     class Meta:
         model = ConsultationSlot
@@ -115,6 +127,7 @@ class ConsultationSlotSerializer(serializers.ModelSerializer):
         return attrs
 
 
+#for UI display for both student and insturcotr(GET)
 class ConsultationSlotDetailSerializer(serializers.ModelSerializer):
     teacher = UserGeneralSerializer(read_only=True)
 
@@ -122,14 +135,15 @@ class ConsultationSlotDetailSerializer(serializers.ModelSerializer):
         model = ConsultationSlot
         fields = [
             'id',
-            'employee_id',
-            'first_name',
-            'last_name',
-            'department'
+            'teacher',
+            'start_time',
+            'end_time',
+            'max_capacity',
+            'location',
         ]
 
 
-
+#for student post/put/patch
 class AppointmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Appointment
@@ -149,7 +163,10 @@ class AppointmentSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         request = self.context.get('request')
         user = request.user
-        slot = attrs.get('slot')
+        slot = attrs.get('slot', getattr(self.instance, 'slot', None))
+
+        if not slot:
+            raise serializers.ValidationError('A valid consultation slot is required')
 
         if user.role != 'ST':
             raise serializers.ValidationError("Only students can book consultation slots.")
@@ -160,14 +177,28 @@ class AppointmentSerializer(serializers.ModelSerializer):
             if locked_slot.is_deleted or not locked_slot.is_available:
                 raise serializers.ValidationError({"slot": "This consultation slot is no longer available."})
 
-            active_bookings_count = Appointment.objects.filter(
-                slot=locked_slot
+            existing_booking = Appointment.objects.filter(
+                slot=locked_slot,
+                student=user
             ).filter(
                 Q(status='PENDING') | Q(status='APPROVED')
-            ).count()
+            )
 
-            if active_bookings_count >= locked_slot.max_capacity:
-                raise serializers.ValidationError({"slot": "This slot has reached its maximum capacity."})
+            if self.instance:
+                existing_booking = existing_booking.exclude(pk=self.instance.pk)
+
+            if existing_booking.exists():
+                raise serializers.ValidationError('You already have an active booking')
+
+            if not self.instance:
+                active_bookings_count = Appointment.objects.filter(
+                    slot=locked_slot
+                ).filter(
+                    Q(status='PENDING') | Q(status='APPROVED')
+                ).count()
+
+                if active_bookings_count >= locked_slot.max_capacity:
+                    raise serializers.ValidationError({"slot": "This slot has reached its maximum capacity."})
 
         return attrs
 
@@ -176,6 +207,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
+#for student/instructor UI (GET)
 class AppointmentDetailSerializer(serializers.ModelSerializer):
     student = UserGeneralSerializer(read_only=True)
 
@@ -194,7 +226,7 @@ class AppointmentDetailSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
 
-
+#both for student and instructors UI, also both for GET or PATCH
 class NotificationSerializer(serializers.ModelSerializer):
     appointment = AppointmentDetailSerializer(read_only=True)
 
