@@ -250,7 +250,7 @@ class NotificationSerializer(serializers.ModelSerializer):
         }
 
 
-class ChangePasswordSerializer(serializers.ModelSerializer):
+class ChangePasswordSerializer(serializers.Serializer):
     #data will come from views in json request.data
     old_password = serializers.CharField(required=True, write_only=True)
     new_password = serializers.CharField(required=True, write_only=True)

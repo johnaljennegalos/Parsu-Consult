@@ -1,4 +1,8 @@
 from django.test import TestCase
+from django.urls import reverse
+from rest_framework import status
+from rest_framework.test import APITestCase
+from rest_framework.test import APIRequestFactory
 from .models import ConsultationSlot, Appointment, Notification
 from django.contrib.auth import get_user_model
 from .serializers import (
@@ -9,7 +13,7 @@ from .serializers import (
     ConsultationSlotDetailSerializer,
     AppointmentSerializer,
     AppointmentDetailSerializer,
-    NotificationSerializer
+    NotificationSerializer, ChangePasswordSerializer
 )
 
 # Create your tests here.
@@ -131,3 +135,51 @@ class SerializerTestCase(TestCase):
         self.assertNotIn('message', serializer.validated_data)
         self.assertNotIn('title', serializer.validated_data)
         self.assertNotIn('recipient', serializer.validated_data)
+
+
+
+#create a test for password
+#class PasswordManagementTests(APITestCase): test_change_password_success test_change_password_incorrect_old_password test_change_password_weak_new_password test_change_password_unauthenticated test_registration_hashes_password
+class PasswordManagementTest(APITestCase):
+
+    def setUp(self):
+        self.student = User.objects.create_user(
+            email = 'johh_student@email.com',
+            username = 'johnStudent',
+            password = 'OldStudentPassword',
+            role = 'ST',
+            first_name = 'John',
+            last_name = 'Korver'
+        )
+
+        self.instructor = User.objects.create_user(
+            email = 'peter_instructor@email.com',
+            username = 'peterInstructor',
+            password = 'OldInstructorPassword',
+            role = 'IN',
+            first_name = 'Peter',
+            last_name = 'Doe'
+        )
+
+        self.factory = APIRequestFactory()
+
+
+
+    def test_student_can_change_password(self):
+
+        request = self.factory.post('api/change-password/')
+        request.user = self.student
+
+        payload = {
+            'old_password' : 'OldStudentPassword',
+            'new_password' : 'NewStudentPassword'
+        }
+
+        serializers = ChangePasswordSerializer(data=payload, context={'request' : request})
+
+        self.assertTrue(serializers.is_valid(), serializers.errors)
+        serializers.save()
+        self.student.refresh_from_db()
+        self.assertTrue(self.student.check_password('NewStudentPassword'))
+        self.assertFalse(self.student.check_password('OldStudentPassword'))
+
