@@ -163,8 +163,6 @@ class PasswordManagementTest(APITestCase):
 
         self.factory = APIRequestFactory()
 
-
-
     def test_student_can_change_password(self):
 
         request = self.factory.post('api/change-password/')
@@ -183,3 +181,19 @@ class PasswordManagementTest(APITestCase):
         self.assertTrue(self.student.check_password('NewStudentPassword'))
         self.assertFalse(self.student.check_password('OldStudentPassword'))
 
+    def test_instructor_can_change_password(self):
+        request = self.factory.post('api/change-password/')
+        request.user = self.instructor
+
+        payload = {
+            'old_password' : 'OldInstructorPassword',
+            'new_password' : 'giantThree'
+        }
+
+        serializers = ChangePasswordSerializer(data=payload, context={'request' : request})
+
+        self.assertTrue(serializers.is_valid(), serializers.errors)
+        serializers.save()
+        self.instructor.refresh_from_db()
+        self.assertTrue(self.instructor.check_password('giantThree'))
+        self.assertFalse(self.instructor.check_password('OldInstructorPassword'))
