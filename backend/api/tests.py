@@ -1,6 +1,7 @@
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
+from django.contrib.auth.models import AnonymousUser
 from rest_framework.test import APITestCase
 from rest_framework.test import APIRequestFactory
 from .models import ConsultationSlot, Appointment, Notification
@@ -209,6 +210,61 @@ class PasswordManagementTest(APITestCase):
 
         serializers = ChangePasswordSerializer(data=payload, context={'request' : request})
 
-        self.assertFalse(serializers.is_valid(), serializers.errors)
+        self.assertFalse(serializers.is_valid())
+        self.assertIn('old_password', serializers.errors)
         self.student.refresh_from_db()
         self.assertFalse(self.student.check_password('WrongPassword123'))
+        self.assertTrue(self.student.check_password('OldStudentPassword'))
+
+    def test_change_password_weak_new_password(self):
+        request = self.factory.post('api/change-password/')
+        request.user = self.student
+
+        payload = {
+            'old_password' : 'OldStudentPassword',
+            'new_password' : 'password'
+        }
+
+        serializers = ChangePasswordSerializer(data=payload, context={'request' : request})
+
+        self.assertFalse(serializers.is_valid())
+        self.assertIn('new_password', serializers.errors)
+        self.student.refresh_from_db()
+        self.assertTrue(self.student.check_password('OldStudentPassword'))
+
+    def test_change_password_unauthenticated(self):
+        request = self.factory.post('api/change-password/')
+        request.user = AnonymousUser()
+
+        payload = {
+            'old_password' : 'oldlookingauthpass',
+            'new_password' : 'newnewnewnew'
+        }
+
+        serializers = ChangePasswordSerializer(data=payload, context={'request' : request})
+
+        self.assertFalse(serializers.is_valid())
+        self.assertIn('old_password', serializers.errors)
+
+    def test_registration_hashes_password(self):
+
+        payload = {
+            'employee_id' : '272394893',
+            'email' : 'patron@test.com',
+            'username' : 'patron',
+            'first_name' : 'John',
+            'last_name' : 'Galos',
+            'password' : 'elpatron123',
+            'department' : 'CS'
+        }
+
+        serializers = InstructorRegistrationSerializer(data=payload)
+
+        self.assertTrue(serializers.is_valid(), serializers.errors)
+        user = serializers.save()
+
+        user.refresh_from_db()
+
+        self.assertNotEqual(user.password, 'elpatron123')
+        self.assertTrue(user.has_usable_password())
+        self.assertTrue(user.check_password('elpatron123'))

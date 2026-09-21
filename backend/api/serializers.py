@@ -257,11 +257,19 @@ class ChangePasswordSerializer(serializers.Serializer):
 
     def validate_old_password(self, value):
         user = self.context['request'].user
+
+        if not user or not user.is_authenticated:
+            raise serializers.ValidationError({'non_field_errors' : ['User must be authenticated']})
+
         if not user.check_password(value):
             raise serializers.ValidationError('Your current password was entered incorrectly')
 
+        return value
+
     def validate_new_password(self, value):
-        validate_password(value, user=self.context['request'].user)
+        user = self.context['request'].user
+        user_obj = user if user and user.is_authenticated else None
+        validate_password(value, user=user_obj)
         return value
 
     def save(self, **kwargs):
