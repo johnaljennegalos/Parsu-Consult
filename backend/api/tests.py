@@ -197,3 +197,18 @@ class PasswordManagementTest(APITestCase):
         self.instructor.refresh_from_db()
         self.assertTrue(self.instructor.check_password('giantThree'))
         self.assertFalse(self.instructor.check_password('OldInstructorPassword'))
+
+    def test_change_password_incorrect_old_password(self):
+        request = self.factory.post('api/change-password/')
+        request.user = self.student
+
+        payload = {
+            'old_password' : 'WrongPassword123',
+            'new_password' : 'ThisIsAValidNewPassword'
+        }
+
+        serializers = ChangePasswordSerializer(data=payload, context={'request' : request})
+
+        self.assertFalse(serializers.is_valid(), serializers.errors)
+        self.student.refresh_from_db()
+        self.assertFalse(self.student.check_password('WrongPassword123'))
