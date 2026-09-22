@@ -302,7 +302,7 @@ class StudentLoginSerializer(serializers.Serializer):
                 raise serializers.ValidationError({'error' : 'Only user with ST role are allowed'})
 
         else:
-            raise serializers.ValidationError('Must include both username and password')
+            raise serializers.ValidationError({'error' : 'Must include both username and password'})
 
         attrs['user'] = user
         return attrs

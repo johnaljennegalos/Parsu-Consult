@@ -334,3 +334,16 @@ class StudentLoginTest(APITestCase):
         self.assertNotIn('access', response.data)
         self.assertNotIn('refresh', response.data)
         self.assertIn('error', response.data)
+
+    def test_student_login_missing_fields(self):
+        payload = {
+            'username' : 'student1',
+            'password' : ''
+        }
+
+        response = self.client.post(self.login_url, data=payload, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertNotIn('access', response.data)
+        self.assertNotIn('refresh', response.data)
+        self.assertIn('password', response.data)
