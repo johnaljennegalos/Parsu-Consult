@@ -299,7 +299,7 @@ class StudentLoginSerializer(serializers.Serializer):
                 raise serializers.ValidationError({'error' : 'Unable to login with provided credentials'})
 
             if getattr(user, 'role', None) != 'ST':
-                raise serializers.ValidationError('Only user with ST role are allowed')
+                raise serializers.ValidationError({'error' : 'Only user with ST role are allowed'})
 
         else:
             raise serializers.ValidationError('Must include both username and password')
