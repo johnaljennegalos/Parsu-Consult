@@ -297,3 +297,17 @@ class StudentLoginTest(APITestCase):
         self.assertIn('refresh', response.data)
         self.assertIn('role', response.data)
         self.assertEqual(response.data['role'], 'ST')
+
+    def test_student_invalid_password(self):
+        payload = {
+            'username' : 'student1',
+            'email' : 'john@test.com',
+            'password' : 'uglystudent'
+        }
+
+        response = self.client.post(self.login_url, data=payload, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertNotIn('access', response.data)
+        self.assertNotIn('refresh', response.data)
+        self.assertIn('error', response.data)
