@@ -268,3 +268,32 @@ class PasswordManagementTest(APITestCase):
         self.assertNotEqual(user.password, 'elpatron123')
         self.assertTrue(user.has_usable_password())
         self.assertTrue(user.check_password('elpatron123'))
+
+
+class StudentLoginTest(APITestCase):
+    def setUp(self):
+        self.login_url = reverse('student-login')
+        self.student_user = User.objects.create_user(
+            username='student1',
+            password='pogistudent',
+            student_id='2718273618',
+            first_name='John',
+            last_name='Galos',
+            email='john@test.com',
+            role='ST'
+        )
+
+    def test_student_login_success(self):
+        payload = {
+            'username' : 'student1',
+            'email' : 'john@test.com',
+            'password' : 'pogistudent',
+        }
+
+        response = self.client.post(self.login_url, data=payload, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('access', response.data)
+        self.assertIn('refresh', response.data)
+        self.assertIn('role', response.data)
+        self.assertEqual(response.data['role'], 'ST')
