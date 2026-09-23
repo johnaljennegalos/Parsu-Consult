@@ -52,6 +52,7 @@ class SerializerTestCase(TestCase):
 
     def test_student_registration_serializer(self):
         payload = {
+            'username' : 'janeromero231',
             'student_id' : '82387420',
             'email' : 'romero231@example.com',
             'first_name' : 'Jane',
