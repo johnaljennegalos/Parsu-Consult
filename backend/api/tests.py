@@ -1,3 +1,5 @@
+from multiprocessing.connection import address_type
+
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
@@ -347,3 +349,35 @@ class StudentLoginTest(APITestCase):
         self.assertNotIn('access', response.data)
         self.assertNotIn('refresh', response.data)
         self.assertIn('password', response.data)
+
+class StudentRegistrationTest(APITestCase):
+    def setUp(self):
+        self.register_url = reverse('student-register')
+
+    def test_student_registration_success(self):
+        payload = {
+            'username' : 'johndoe123',
+            'email' : 'johnstudent@test.com',
+            'password' : 'johnghost1!',
+            'address' : 'Camarines Sur',
+            'contact_number' : '09123456890',
+            'first_name' : 'John',
+            'last_name' : 'Doe',
+            'student_id' : '1234567890',
+            'course' : 'BSCS',
+            'year_level' : '3',
+            'section' : 'B',
+        }
+
+        response  = self.client.post(self.register_url, data=payload, format='json')
+        print("REGISTRATION ERRORS:", response.data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        print("USERS IN DB:", list(User.objects.values('id', 'username', 'email')))
+        user = User.objects.get(username='johndoe123')
+        self.assertEqual(user.email, 'johnstudent@test.com')
+        self.assertEqual(user.role, 'ST')
+        self.assertTrue(user.check_password('johnghost1!'))
+
+
+

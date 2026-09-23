@@ -44,8 +44,8 @@ class User(AbstractUser):
     specialization = models.CharField(max_length=100, blank=True, null=True)
     employee_id = models.CharField(max_length=100, blank=True, null=True, unique=True)
 
-    USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["username", "first_name", "last_name"]
+    USERNAME_FIELD = "username"
+    REQUIRED_FIELDS = ["email", "first_name", "last_name"]
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.get_role_display()})"
@@ -53,7 +53,6 @@ class User(AbstractUser):
     def soft_delete(self, using=None, keep_parents=False):
         self.is_active = False
         self.save(update_fields=['is_active'])
-
 
 class ConsultationSlot(models.Model):
     teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, limit_choices_to={'role': 'IN'}, related_name="consultation_slots")

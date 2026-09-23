@@ -4,7 +4,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import authenticate
-
+from django.contrib.auth.hashers import make_password
 
 class UserGeneralSerializer(serializers.ModelSerializer):
     class Meta:
@@ -34,6 +34,7 @@ class UserGeneralSerializer(serializers.ModelSerializer):
 
 
 class StudentRegistrationSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(required=True)
     password = serializers.CharField(
         write_only=True,
         required=True,
@@ -44,30 +45,38 @@ class StudentRegistrationSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id',
-            'student_id',
-            'first_name',
-            'last_name',
+            'username',
             'email',
             'password',
-            'contact_number',
-            'address',
+            'first_name',
+            'last_name',
+            'student_id',
             'course',
             'year_level',
-            'section'
+            'section',
+            'address',
+            'contact_number',
         ]
 
         extra_kwargs = {
-            'student_id' : {'required' : True},
-            'course' : {'required' : True},
-            'year_level' : {'required' : True},
-            'section' : {'required' : True}
+            'student_id': {'required': True},
+            'course': {'required': True},
+            'year_level': {'required': True},
+            'section': {'required': True},
         }
 
     def create(self, validated_data):
         validated_data['role'] = 'ST'
-        if 'username' not in validated_data:
-            validated_data['username'] = validated_data['email']
-        return User.objects.create_user(**validated_data)
+        username = validated_data.pop('username')
+        email = validated_data.pop('email')
+        password = validated_data.pop('password')
+
+        return User.objects.create_user(
+            username=username,
+            email=email,
+            password=password,
+            **validated_data
+        )
 
 
 
@@ -306,3 +315,4 @@ class StudentLoginSerializer(serializers.Serializer):
 
         attrs['user'] = user
         return attrs
+
