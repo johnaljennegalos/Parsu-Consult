@@ -3,7 +3,8 @@ from .models import User, ConsultationSlot, Appointment, Notification
 from django.db import transaction
 from django.db.models import Q
 from django.contrib.auth.password_validation import validate_password
-
+from django.contrib.auth import authenticate
+from django.contrib.auth.hashers import make_password
 
 class UserGeneralSerializer(serializers.ModelSerializer):
     class Meta:
@@ -33,6 +34,7 @@ class UserGeneralSerializer(serializers.ModelSerializer):
 
 
 class StudentRegistrationSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(required=True)
     password = serializers.CharField(
         write_only=True,
         required=True,
@@ -43,30 +45,38 @@ class StudentRegistrationSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id',
-            'student_id',
-            'first_name',
-            'last_name',
+            'username',
             'email',
             'password',
-            'contact_number',
-            'address',
+            'first_name',
+            'last_name',
+            'student_id',
             'course',
             'year_level',
-            'section'
+            'section',
+            'address',
+            'contact_number',
         ]
 
         extra_kwargs = {
-            'student_id' : {'required' : True},
-            'course' : {'required' : True},
-            'year_level' : {'required' : True},
-            'section' : {'required' : True}
+            'student_id': {'required': True},
+            'course': {'required': True},
+            'year_level': {'required': True},
+            'section': {'required': True},
         }
 
     def create(self, validated_data):
         validated_data['role'] = 'ST'
-        if 'username' not in validated_data:
-            validated_data['username'] = validated_data['email']
-        return User.objects.create_user(**validated_data)
+        username = validated_data.pop('username')
+        email = validated_data.pop('email')
+        password = validated_data.pop('password')
+
+        return User.objects.create_user(
+            username=username,
+            email=email,
+            password=password,
+            **validated_data
+        )
 
 
 
@@ -277,3 +287,32 @@ class ChangePasswordSerializer(serializers.Serializer):
         user.set_password(self.validated_data['new_password'])
         user.save()
         return user
+
+class StudentLoginSerializer(serializers.Serializer):
+    username = serializers.CharField(required=True, write_only=True)
+    password = serializers.CharField(required=True, write_only=True)
+
+
+    def validate(self, attrs):
+        username = attrs.get('username')
+        password = attrs.get('password')
+
+        if username and password:
+            user = authenticate(
+                request=self.context.get('request'),
+                username=username,
+                password=password
+            )
+
+            if not user:
+                raise serializers.ValidationError({'error' : 'Unable to login with provided credentials'})
+
+            if getattr(user, 'role', None) != 'ST':
+                raise serializers.ValidationError({'error' : 'Only user with ST role are allowed'})
+
+        else:
+            raise serializers.ValidationError({'error' : 'Must include both username and password'})
+
+        attrs['user'] = user
+        return attrs
+
