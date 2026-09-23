@@ -379,5 +379,32 @@ class StudentRegistrationTest(APITestCase):
         self.assertEqual(user.role, 'ST')
         self.assertTrue(user.check_password('johnghost1!'))
 
+    def test_student_duplicate_registration(self):
+        User.objects.create_user(
+            username='existinguser',
+            email='johnstudent@test.com',
+            student_id='123457890',
+        )
+
+        payload = {
+            'username' : 'johndoe123',
+            'email' : 'johnstudent@test.com',
+            'password' : 'johnghost1!',
+            'address' : 'Camarines Sur',
+            'contact_number' : '09123456890',
+            'first_name' : 'John',
+            'last_name' : 'Doe',
+            'student_id' : '1234567890',
+            'course' : 'BSCS',
+            'year_level' : '3',
+            'section' : 'B',
+        }
+
+        response = self.client.post(self.register_url, data=payload, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('email', response.data)
+        self.assertEqual(User.objects.count(), 1)
+
 
 
