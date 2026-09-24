@@ -92,6 +92,7 @@ class InstructorRegistrationSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id',
+            'username',
             'employee_id',
             'first_name',
             'last_name',
@@ -110,9 +111,16 @@ class InstructorRegistrationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data['role'] = 'IN'
-        if 'username' not in validated_data:
-            validated_data['username'] = validated_data['email']
-        return User.objects.create_user(**validated_data)
+        password = validated_data.pop('password')
+        email = validated_data.pop('email')
+        username = validated_data.pop('username', email)
+
+        return User.objects.create_user(
+            username=username,
+            email=email,
+            password=password,
+            **validated_data
+        )
 
 # The instructor is injected automatically in ViewSet when calling .perform_create(serializer).
 #instructor form post/put/patch
