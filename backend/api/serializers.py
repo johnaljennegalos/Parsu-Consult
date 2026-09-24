@@ -5,6 +5,7 @@ from django.db.models import Q
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
+from rest_framework.exceptions import AuthenticationFailed
 
 class UserGeneralSerializer(serializers.ModelSerializer):
     class Meta:
@@ -316,3 +317,30 @@ class StudentLoginSerializer(serializers.Serializer):
         attrs['user'] = user
         return attrs
 
+
+class InstructorLoginSerializer(serializers.Serializer):
+    username = serializers.CharField(required=True, write_only=True)
+    password = serializers.CharField(required=True, write_only=True)
+
+    def validate(self, attrs):
+        username = attrs.get('username')
+        password = attrs.get('password')
+
+        if username and password:
+            user = authenticate(
+                request=self.context.get('request'),
+                username=username,
+                password=password
+            )
+
+            if not user:
+                raise AuthenticationFailed('Unable to login with provided credentials')
+
+            if getattr(user, 'role', None) != 'IN':
+                raise AuthenticationFailed('Only user with IN role are allowed')
+
+        else:
+            raise serializers.ValidationError({'error' : 'Must include both username and password'})
+
+        attrs['user'] = user
+        return attrs

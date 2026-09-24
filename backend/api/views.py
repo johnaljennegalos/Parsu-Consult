@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import StudentLoginSerializer, StudentRegistrationSerializer
+from .serializers import StudentLoginSerializer, StudentRegistrationSerializer, InstructorLoginSerializer
 
 
 class StudentLoginView(APIView):
@@ -43,3 +43,32 @@ class StudentRegisterView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class InstructorLoginView(APIView):
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = InstructorLoginSerializer(data=request.data, context={'request' : request})
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        user = serializer.validated_data['user']
+
+        if user is None:
+            return Response({'errors' : 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        if user.role != 'IN':
+            return Response({'error' : 'Account is not registered as Instructor'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        refresh = RefreshToken.for_user(user)
+
+        return Response({
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+            'role' : user.role
+        }, status=status.HTTP_200_OK)
+
+
+
