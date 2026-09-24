@@ -54,6 +54,7 @@ class User(AbstractUser):
         self.is_active = False
         self.save(update_fields=['is_active'])
 
+
 class ConsultationSlot(models.Model):
     teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, limit_choices_to={'role': 'IN'}, related_name="consultation_slots")
     date = models.DateField()

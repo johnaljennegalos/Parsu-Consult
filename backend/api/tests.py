@@ -310,7 +310,7 @@ class StudentLoginTest(APITestCase):
 
         response = self.client.post(self.login_url, data=payload, format='json')
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertNotIn('access', response.data)
         self.assertNotIn('refresh', response.data)
         self.assertIn('error', response.data)
@@ -333,7 +333,7 @@ class StudentLoginTest(APITestCase):
 
         response = self.client.post(self.login_url, data=payload, format='json')
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertNotIn('access', response.data)
         self.assertNotIn('refresh', response.data)
         self.assertIn('error', response.data)
