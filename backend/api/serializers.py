@@ -5,6 +5,7 @@ from django.db.models import Q
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
+from rest_framework.exceptions import AuthenticationFailed
 
 class UserGeneralSerializer(serializers.ModelSerializer):
     class Meta:
@@ -91,6 +92,7 @@ class InstructorRegistrationSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id',
+            'username',
             'employee_id',
             'first_name',
             'last_name',
@@ -109,9 +111,16 @@ class InstructorRegistrationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data['role'] = 'IN'
-        if 'username' not in validated_data:
-            validated_data['username'] = validated_data['email']
-        return User.objects.create_user(**validated_data)
+        password = validated_data.pop('password')
+        email = validated_data.pop('email')
+        username = validated_data.pop('username', email)
+
+        return User.objects.create_user(
+            username=username,
+            email=email,
+            password=password,
+            **validated_data
+        )
 
 # The instructor is injected automatically in ViewSet when calling .perform_create(serializer).
 #instructor form post/put/patch
@@ -316,3 +325,30 @@ class StudentLoginSerializer(serializers.Serializer):
         attrs['user'] = user
         return attrs
 
+
+class InstructorLoginSerializer(serializers.Serializer):
+    username = serializers.CharField(required=True, write_only=True)
+    password = serializers.CharField(required=True, write_only=True)
+
+    def validate(self, attrs):
+        username = attrs.get('username')
+        password = attrs.get('password')
+
+        if username and password:
+            user = authenticate(
+                request=self.context.get('request'),
+                username=username,
+                password=password
+            )
+
+            if not user:
+                raise AuthenticationFailed('Unable to login with provided credentials')
+
+            if getattr(user, 'role', None) != 'IN':
+                raise AuthenticationFailed('Only user with IN role are allowed')
+
+        else:
+            raise serializers.ValidationError({'error' : 'Must include both username and password'})
+
+        attrs['user'] = user
+        return attrs
