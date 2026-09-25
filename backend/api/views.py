@@ -3,8 +3,14 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework import generics
+from rest_framework.permissions import IsAuthenticated
 
-from .serializers import StudentLoginSerializer, StudentRegistrationSerializer, InstructorLoginSerializer, InstructorRegistrationSerializer
+from django.contrib.auth import get_user_model
+from django.db.models import Q
+
+from .serializers import StudentLoginSerializer, StudentRegistrationSerializer, InstructorLoginSerializer, InstructorRegistrationSerializer, InstructorPublicProfileSerializer
+from .permissions import IsStudent
 
 
 class StudentLoginView(APIView):
@@ -85,3 +91,30 @@ class InstructorRegisterView(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
+User = get_user_model()
+
+class InstructorListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated, IsStudent]
+    serializer_class = InstructorPublicProfileSerializer
+
+    def get_queryset(self):
+        queryset = User.objects.filter(role='IN')
+
+        search_queryset = self.request.query_params.get('search', '').strip()
+
+        if search_queryset:
+            queryset = queryset.filter(
+                Q(first_name__icontains=search_queryset) |
+                Q(last_name__icontains=search_queryset) |
+                Q(department__icontains=search_queryset) |
+                Q(specialization__icontains=search_queryset)
+            )
+        else:
+            student_dept = self.request.user.department
+
+            if student_dept:
+                queryset = queryset.filter(department=student_dept)
+            else:
+                return User.objects.none()
+
+        return queryset

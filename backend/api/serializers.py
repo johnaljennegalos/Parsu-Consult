@@ -352,3 +352,17 @@ class InstructorLoginSerializer(serializers.Serializer):
 
         attrs['user'] = user
         return attrs
+
+
+class InstructorPublicProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'email',
+            'first_name',
+            'last_name',
+            'contact_number',
+            'department',
+            'specialization',
+        ]
