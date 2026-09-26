@@ -11,6 +11,7 @@ from django.db.models import Q
 
 from .serializers import StudentLoginSerializer, StudentRegistrationSerializer, InstructorLoginSerializer, InstructorRegistrationSerializer, InstructorPublicProfileSerializer
 from .permissions import IsStudent
+from .models import User
 
 
 class StudentLoginView(APIView):
@@ -118,3 +119,9 @@ class InstructorListView(generics.ListAPIView):
                 return User.objects.none()
 
         return queryset
+
+
+class InstructorDetailView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated, IsStudent]
+    serializer_class = InstructorPublicProfileSerializer
+    queryset = User.objects.filter(role='IN')
