@@ -71,6 +71,26 @@ class ConsultationSlot(models.Model):
         self.is_available = False
         self.save()
 
+class ConsultationBooking(models.Model):
+    STATUS_CHOICES = [
+        ('CONFIRMED', 'Confirmed'),
+        ('CANCELLED', 'Cancelled')
+    ]
+
+    slot = models.ForeignKey(ConsultationSlot, on_delete=models.CASCADE, related_name='bookings')
+    student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, limit_choices_to={'role' : 'ST'}, related_name='consultation_bookings')
+    status = models.CharField(default='CONFIRMED', choices=STATUS_CHOICES, max_length=10)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields = ['slot', 'student'],
+                condition=models.Q(status='CONFIRMED'),
+                name='unique_slot_student_booking'
+            )
+        ]
+
 class Appointment(models.Model):
     APPOINTMENT_STATUS = [
         ("PENDING", "Pending"),
