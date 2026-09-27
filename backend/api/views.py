@@ -3,15 +3,17 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework import generics
+from rest_framework import generics, mixins
 from rest_framework.permissions import IsAuthenticated
 
 from django.contrib.auth import get_user_model
 from django.db.models import Q
+from django.utils import timezone
 
-from .serializers import StudentLoginSerializer, StudentRegistrationSerializer, InstructorLoginSerializer, InstructorRegistrationSerializer, InstructorPublicProfileSerializer
-from .permissions import IsStudent
-from .models import User
+from .serializers import StudentLoginSerializer, StudentRegistrationSerializer, InstructorLoginSerializer, InstructorRegistrationSerializer, InstructorPublicProfileSerializer, ConsultationSlotSerializer, ConsultationBookingSerializer, ConsultationSlotDetailSerializer
+
+from .permissions import IsStudent, IsInstructor
+from .models import User, ConsultationSlot, ConsultationBooking
 
 
 class StudentLoginView(APIView):
@@ -125,3 +127,60 @@ class InstructorDetailView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated, IsStudent]
     serializer_class = InstructorPublicProfileSerializer
     queryset = User.objects.filter(role='IN')
+
+
+class ConsultationSlotListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated, IsInstructor]
+    serializer_class = ConsultationSlotSerializer
+
+    def get_queryset(self):
+        return ConsultationSlot.objects.filter(teacher=self.request.user, is_deleted=False)
+
+
+    def perform_create(self, serializer):
+        serializer.save(teacher=self.request.user)
+
+
+class ConsultationSlotDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated, IsInstructor]
+    serializer_class = ConsultationSlotSerializer
+
+    def get_queryset(self):
+        return ConsultationSlot.objects.filter(teacher=self.request.user, is_deleted=False)
+
+    def perform_destroy(self, instance):
+        instance.soft_delete()
+
+class AvailableSlotListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated, IsStudent]
+    serializer_class = ConsultationSlotDetailSerializer
+
+    def get_queryset(self):
+        queryset = ConsultationSlot.objects.filter(is_available=True, is_deleted=False, date__gte=timezone.localtime(timezone.now()).date())
+
+        teacher_id = self.request.query_params.get('teacher_id')
+
+        if teacher_id:
+            queryset = queryset.filter(teacher_id=teacher_id)
+        return queryset
+
+
+class ConsultationBookingListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated, IsStudent]
+    serializer_class = ConsultationBookingSerializer
+
+    def get_queryset(self):
+        return ConsultationBooking.objects.filter(student=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(student=self.request.user)
+
+class ConsultationBookingCancelView(generics.UpdateAPIView):
+    permission_classes = [IsAuthenticated, IsStudent]
+    serializer_class = ConsultationBookingSerializer
+
+    def get_queryset(self):
+        return ConsultationBooking.objects.filter(student=self.request.user, status='CONFIRMED')
+
+    def perform_update(self, serializer):
+        serializer.save(status='CANCELLED')
