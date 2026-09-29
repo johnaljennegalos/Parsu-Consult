@@ -7,6 +7,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
 from rest_framework.exceptions import AuthenticationFailed
 from django.utils import timezone
+from rest_framework.validators import UniqueTogetherValidator
 
 class UserGeneralSerializer(serializers.ModelSerializer):
     class Meta:
@@ -163,32 +164,35 @@ class ConsultationSlotSerializer(serializers.ModelSerializer):
 class ConsultationBookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = ConsultationBooking
-        fields = [
-            'id',
-            'slot',
-            'student',
-            'status',
-            'created_at'
-        ]
+        fields = '__all__'
 
         read_only_fields = ['student', 'status', 'created_at']
 
     def validate(self, attrs):
-        user = self.context['request'].user
-        slot = attrs.get('slot')
-        now = timezone.localtime(timezone.now())
-        active_booking = slot.bookings.filter(status='CONFIRMED').count()
-        has_active_booking = slot.bookings.filter(student=user, status='CONFIRMED').exists()
 
-        if slot.is_available or slot.is_deleted:
+        if self.instance:
+            if self.instance.status == 'CANCELLED':
+                raise serializers.ValidationError({'status': 'Booking is already cancelled.'})
+            return attrs
+
+        slot = attrs.get('slot')
+        if not slot:
+            raise serializers.ValidationError({'slot': 'This field is required.'})
+
+        if not slot.is_available or slot.is_deleted:
             raise serializers.ValidationError({'slot' : 'This consultation slot is no longer available.'})
 
+        now = timezone.localtime(timezone.now())
         if slot.date < now.date() or (slot.date == now.date() and slot.start_time <= now.time()):
             raise serializers.ValidationError({"slot": "Cannot book a consultation slot that has already passed."})
 
-        if active_booking >= slot.max_capacity:
-            raise serializers.ValidationError({"slot": "This consultation slot has reached maximum capacity."})
+        active_count = slot.bookings.exclude(status='CANCELLED').count()
+        if active_count >= slot.max_capacity:
+            raise serializers.ValidationError({'slot': 'This consultation slot has reached maximum capacity.'})
 
+        user = self.context['request'].user
+        # active_booking = slot.bookings.filter(status='CONFIRMED').count()
+        has_active_booking = slot.bookings.filter(student=user).exclude(status='CANCELLED').exists()
         if has_active_booking:
             raise serializers.ValidationError({"slot": "You already have an active booking for this slot."})
 
