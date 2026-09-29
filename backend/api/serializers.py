@@ -1,11 +1,13 @@
 from rest_framework import serializers
-from .models import User, ConsultationSlot, Appointment, Notification
+from .models import User, ConsultationSlot, Appointment, Notification, ConsultationBooking
 from django.db import transaction
 from django.db.models import Q
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
 from rest_framework.exceptions import AuthenticationFailed
+from django.utils import timezone
+from rest_framework.validators import UniqueTogetherValidator
 
 class UserGeneralSerializer(serializers.ModelSerializer):
     class Meta:
@@ -134,6 +136,7 @@ class ConsultationSlotSerializer(serializers.ModelSerializer):
             'end_time',
             'max_capacity',
             'location',
+            'date',
         ]
 
         extra_kwargs = {
@@ -141,9 +144,61 @@ class ConsultationSlotSerializer(serializers.ModelSerializer):
         }
 
     def validate(self, attrs):
-        if attrs['start_time'] >= attrs['end_time']:
+        start = attrs.get('start_time', getattr(self.instance, 'start_time', None))
+        end = attrs.get('end_time', getattr(self.instance, 'end_time', None))
+        date_val = attrs.get('date', getattr(self.instance, 'date', None))
+        now = timezone.localtime(timezone.now())
+
+        if date_val < now.date():
+            raise serializers.ValidationError({"date": "Cannot create or update a slot in the past."})
+
+        if date_val == now.date() and start < now.time():
+            raise serializers.ValidationError({"start_time": "Start time cannot be in the past."})
+
+        if start >= end:
             raise serializers.ValidationError({"end_time": "End time must be strictly after start time."})
+
         return attrs
+
+
+class ConsultationBookingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ConsultationBooking
+        fields = '__all__'
+
+        read_only_fields = ['student', 'status', 'created_at']
+
+    def validate(self, attrs):
+
+        if self.instance:
+            if self.instance.status == 'CANCELLED':
+                raise serializers.ValidationError({'status': 'Booking is already cancelled.'})
+            return attrs
+
+        slot = attrs.get('slot')
+        if not slot:
+            raise serializers.ValidationError({'slot': 'This field is required.'})
+
+        if not slot.is_available or slot.is_deleted:
+            raise serializers.ValidationError({'slot' : 'This consultation slot is no longer available.'})
+
+        now = timezone.localtime(timezone.now())
+        if slot.date < now.date() or (slot.date == now.date() and slot.start_time <= now.time()):
+            raise serializers.ValidationError({"slot": "Cannot book a consultation slot that has already passed."})
+
+        active_count = slot.bookings.exclude(status='CANCELLED').count()
+        if active_count >= slot.max_capacity:
+            raise serializers.ValidationError({'slot': 'This consultation slot has reached maximum capacity.'})
+
+        user = self.context['request'].user
+        # active_booking = slot.bookings.filter(status='CONFIRMED').count()
+        has_active_booking = slot.bookings.filter(student=user).exclude(status='CANCELLED').exists()
+        if has_active_booking:
+            raise serializers.ValidationError({"slot": "You already have an active booking for this slot."})
+
+        return attrs
+
+
 
 
 #for UI display for both student and insturcotr(GET)
@@ -159,6 +214,7 @@ class ConsultationSlotDetailSerializer(serializers.ModelSerializer):
             'end_time',
             'max_capacity',
             'location',
+            'date',
         ]
 
 
