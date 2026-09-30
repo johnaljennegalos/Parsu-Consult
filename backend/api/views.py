@@ -10,7 +10,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.utils import timezone
 
-from .serializers import StudentLoginSerializer, StudentRegistrationSerializer, InstructorLoginSerializer, InstructorRegistrationSerializer, InstructorPublicProfileSerializer, ConsultationSlotSerializer, ConsultationBookingSerializer, ConsultationSlotDetailSerializer
+from .serializers import StudentLoginSerializer, StudentRegistrationSerializer, InstructorLoginSerializer, InstructorRegistrationSerializer, InstructorPublicProfileSerializer, ConsultationSlotSerializer, ConsultationBookingSerializer, ConsultationSlotDetailSerializer, StudentBookingHistorySerializer, InstructorRosterSerializer, AttendanceUpdateSerializer
 
 from .permissions import IsStudent, IsInstructor
 from .models import User, ConsultationSlot, ConsultationBooking
@@ -184,3 +184,31 @@ class ConsultationBookingCancelView(generics.UpdateAPIView):
 
     def perform_update(self, serializer):
         serializer.save(status='CANCELLED')
+
+
+class StudentBookingHistoryView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated, IsStudent]
+    serializer_class = StudentBookingHistorySerializer
+
+    def get_queryset(self):
+        return ConsultationBooking.objects.filter(student=self.request.user)
+
+
+class InstructorRosterView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated, IsInstructor]
+    serializer_class = InstructorRosterSerializer
+
+    def get_queryset(self):
+        return ConsultationBooking.objects.filter(slot__teacher=self.request.user)
+
+
+class AttendanceUpdateView(generics.UpdateAPIView):
+    permission_classes = [IsAuthenticated, IsInstructor]
+    serializer_class = AttendanceUpdateSerializer
+    
+    http_method_names = ['patch', 'put']
+
+    def get_queryset(self):
+        return ConsultationBooking.objects.filter(slot__teacher=self.request.user)
+    
+
