@@ -8,6 +8,8 @@ from django.contrib.auth.hashers import make_password
 from rest_framework.exceptions import AuthenticationFailed
 from django.utils import timezone
 from rest_framework.validators import UniqueTogetherValidator
+from datetime import datetime
+
 
 class UserGeneralSerializer(serializers.ModelSerializer):
     class Meta:
@@ -216,6 +218,70 @@ class ConsultationSlotDetailSerializer(serializers.ModelSerializer):
             'location',
             'date',
         ]
+
+class StudentBookingHistorySerializer(serializers.ModelSerializer):
+    slot = ConsultationSlotDetailSerializer(read_only=True)
+    is_past_slot = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ConsultationBooking
+        fields = [
+            'id',
+            'slot',
+            'status',
+            'created_at',
+            'is_past_slot',
+        ]
+
+    def get_is_past_slot(self, obj):
+        end_time = datetime.combine(obj.slot.date, obj.slot.end_time)
+        aware_end_time = timezone.make_aware(end_time)
+
+        if aware_end_time < timezone.now():
+            print('Slot time is in the past')
+            return True
+        return False
+
+
+class InstructorRosterSerializer(serializers.ModelSerializer):
+    student = UserGeneralSerializer(read_only=True)
+
+    class Meta:
+        model = ConsultationBooking
+        fields = [
+            'id',
+            'student',
+            'status',
+            'created_at'
+        ]
+
+class AttendanceUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ConsultationBooking
+        fields = [
+            'status'
+        ]
+
+    def validate(self, attrs):
+        status = attrs.get('status')
+        state = self.instance.status
+        date = self.instance.slot.date
+        end_time = self.instance.slot.end_time
+        naive_slot_time = datetime.combine(date, end_time)
+        aware_slot_time = timezone.make_aware(naive_slot_time)
+
+        if status not in ['COMPLETED', 'NO SHOW']:
+            raise serializers.ValidationError({'status' : 'Cannot modify confirmed or cancelled appointment.'})
+
+        if state == 'CANCELLED' or state == 'COMPLETED' or state == 'NO SHOW':
+            raise serializers.ValidationError({'status' : 'Cannot modify finalized appointment'})
+
+        if aware_slot_time > timezone.now():
+            raise serializers.ValidationError({'status' : 'Cannot mark attendance for a future consultation slot.'})
+
+        return attrs
+
+
 
 
 #for student post/put/patch

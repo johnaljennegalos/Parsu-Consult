@@ -74,7 +74,9 @@ class ConsultationSlot(models.Model):
 class ConsultationBooking(models.Model):
     STATUS_CHOICES = [
         ('CONFIRMED', 'Confirmed'),
-        ('CANCELLED', 'Cancelled')
+        ('CANCELLED', 'Cancelled'),
+        ('COMPLETED', 'Completed'),
+        ('NO SHOW', 'No Show')
     ]
 
     slot = models.ForeignKey(ConsultationSlot, on_delete=models.CASCADE, related_name='bookings')
