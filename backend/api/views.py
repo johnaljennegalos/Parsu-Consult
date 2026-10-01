@@ -7,10 +7,10 @@ from rest_framework import generics, mixins
 from rest_framework.permissions import IsAuthenticated
 
 from django.contrib.auth import get_user_model
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.utils import timezone
 
-from .serializers import StudentLoginSerializer, StudentRegistrationSerializer, InstructorLoginSerializer, InstructorRegistrationSerializer, InstructorPublicProfileSerializer, ConsultationSlotSerializer, ConsultationBookingSerializer, ConsultationSlotDetailSerializer, StudentBookingHistorySerializer, InstructorRosterSerializer, AttendanceUpdateSerializer
+from .serializers import StudentLoginSerializer, StudentRegistrationSerializer, InstructorLoginSerializer, InstructorRegistrationSerializer, InstructorPublicProfileSerializer, ConsultationSlotSerializer, ConsultationBookingSerializer, ConsultationSlotDetailSerializer, StudentBookingHistorySerializer, InstructorRosterSerializer, AttendanceUpdateSerializer, StudentProfileMetricsSerializer
 
 from .permissions import IsStudent, IsInstructor
 from .models import User, ConsultationSlot, ConsultationBooking
@@ -212,3 +212,21 @@ class AttendanceUpdateView(generics.UpdateAPIView):
         return ConsultationBooking.objects.filter(slot__teacher=self.request.user)
     
 
+class StudentProfileMetricView(APIView):
+    permission_classes = [IsAuthenticated, IsStudent]
+
+    def get(self, request):
+        today = timezone.localtime(timezone.now()).date()
+
+        metrics_data = ConsultationBooking.objects.filter(
+            student=request.user
+        ).aggregate(
+            total_consultation=Count('id'),
+            incoming_consultation=Count('id', filter=Q(status__in=['PENDING', 'CONFIRMED'], slot__date__gte=today)),
+            completed_consultation=Count('id', filter=Q(status='COMPLETED')),
+            no_show_consultation=Count('id', filter=Q(status='NO SHOW'))
+        )
+
+        serializers = StudentProfileMetricsSerializer(request.user, context={'request' : request, 'metrics' : metrics_data})
+
+        return Response(serializers.data, status=status.HTTP_200_OK)
