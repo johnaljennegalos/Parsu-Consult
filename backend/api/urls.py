@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import StudentLoginView, StudentRegisterView, InstructorLoginView, InstructorRegisterView, InstructorListView, InstructorDetailView, ConsultationSlotListCreateView, ConsultationSlotDetailView, AvailableSlotListView, ConsultationBookingListCreateView, ConsultationBookingCancelView, StudentBookingHistoryView, InstructorRosterView, AttendanceUpdateView
+from .views import StudentLoginView, StudentRegisterView, InstructorLoginView, InstructorRegisterView, InstructorListView, InstructorDetailView, ConsultationSlotListCreateView, ConsultationSlotDetailView, AvailableSlotListView, ConsultationBookingListCreateView, ConsultationBookingCancelView, StudentBookingHistoryView, InstructorRosterView, AttendanceUpdateView, StudentProfileMetricView
 
 urlpatterns = [
     path('student/login/', StudentLoginView.as_view(), name='student-login',),
@@ -15,6 +15,6 @@ urlpatterns = [
     path('bookings/<int:pk>/cancel/', ConsultationBookingCancelView.as_view(), name='consultation-booking-cancel'),
     path('students/me/history/', StudentBookingHistoryView.as_view(), name='student-booking-history'),
     path('instructors/me/roster/', InstructorRosterView.as_view(), name='instructor-roster'),
-    path('bookings/<int:pk>/attendance/', AttendanceUpdateView.as_view(), name='attendance-update')
-
+    path('bookings/<int:pk>/attendance/', AttendanceUpdateView.as_view(), name='attendance-update'),
+    path('students/me/profile-metrics/', StudentProfileMetricView.as_view(), name='student-profile-metric')
 ]

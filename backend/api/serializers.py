@@ -1,3 +1,5 @@
+from getpass import fallback_getpass
+
 from rest_framework import serializers
 from .models import User, ConsultationSlot, Appointment, Notification, ConsultationBooking
 from django.db import transaction
@@ -488,3 +490,31 @@ class InstructorPublicProfileSerializer(serializers.ModelSerializer):
             'department',
             'specialization',
         ]
+        
+        
+        
+class StudentProfileMetricsSerializer(serializers.ModelSerializer):
+    student = UserGeneralSerializer(source='*', read_only=True)
+    metrics = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            'student',
+            'metrics'
+        ]
+
+    def get_metrics(self, obj):
+        fallback_metrics = {
+            'total_consultations': 0,
+            'incoming_consultations': 0,
+            'completed_consultations': 0,
+            'no_show_consultations': 0
+        }
+
+        metrics_data = self.context.get(
+            'metrics', fallback_metrics
+        )
+
+        return metrics_data
+
