@@ -221,10 +221,10 @@ class StudentProfileMetricView(APIView):
         metrics_data = ConsultationBooking.objects.filter(
             student=request.user
         ).aggregate(
-            total_consultations=Count('id'),
-            incoming_consultations=Count('id', filter=Q(status__in=['PENDING', 'CONFIRMED'], slot__date__gte=today)),
-            completed_consultations=Count('id', filter=Q(status='COMPLETED')),
-            no_show_consultations=Count('id', filter=Q(status='NO SHOW'))
+            total_consultation=Count('id'),
+            incoming_consultation=Count('id', filter=Q(status__in=['PENDING', 'CONFIRMED'], slot__date__gte=today)),
+            completed_consultation=Count('id', filter=Q(status='COMPLETED')),
+            no_show_consultation=Count('id', filter=Q(status='NO SHOW'))
         )
 
         serializers = StudentProfileMetricsSerializer(request.user, context={'request' : request, 'metrics' : metrics_data})
