@@ -173,11 +173,13 @@ class ConsultationSlotSerializer(serializers.ModelSerializer):
             end_time__gt=start
         )
 
-        if self.instance is None:
-            overlapping_slot = overlapping_slot.excluded(pk=self.instance.pk)
+        if self.instance is not None:
+            overlapping_slot = overlapping_slot.exclude(pk=self.instance.pk)
 
         if overlapping_slot.exists():
-            raise serializers.ValidationError('{"non_field_errors": ["You already have an overlapping consultation slot for this time range."]}')
+            raise serializers.ValidationError({
+                "non_field_errors": ["You already have an overlapping consultation slot for this time range."]
+            })
 
         return attrs
 
