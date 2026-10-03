@@ -6,7 +6,6 @@ from django.contrib.auth import get_user_model
 from api.models import ConsultationSlot, ConsultationBooking
 
 
-
 User = get_user_model()
 
 class BookingEngineAPITests(APITestCase):

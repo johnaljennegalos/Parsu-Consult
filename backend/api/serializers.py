@@ -162,6 +162,25 @@ class ConsultationSlotSerializer(serializers.ModelSerializer):
         if start >= end:
             raise serializers.ValidationError({"end_time": "End time must be strictly after start time."})
 
+        request = self.context.get('request')
+        teacher = request.user if request else None
+
+        overlapping_slot = ConsultationSlot.objects.filter(
+            teacher=teacher,
+            date=date_val,
+            is_deleted=False,
+            start_time__lt=end,
+            end_time__gt=start
+        )
+
+        if self.instance is not None:
+            overlapping_slot = overlapping_slot.exclude(pk=self.instance.pk)
+
+        if overlapping_slot.exists():
+            raise serializers.ValidationError({
+                "non_field_errors": ["You already have an overlapping consultation slot for this time range."]
+            })
+
         return attrs
 
 
