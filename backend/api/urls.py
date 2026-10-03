@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import StudentLoginView, StudentRegisterView, InstructorLoginView, InstructorRegisterView, InstructorListView, InstructorDetailView, ConsultationSlotListCreateView, ConsultationSlotDetailView, AvailableSlotListView, ConsultationBookingListCreateView, ConsultationBookingCancelView, StudentBookingHistoryView, InstructorRosterView, AttendanceUpdateView, StudentProfileMetricView
+from .views import StudentLoginView, StudentRegisterView, InstructorLoginView, InstructorRegisterView, InstructorListView, InstructorDetailView, ConsultationSlotListCreateView, ConsultationSlotDetailView, AvailableSlotListView, ConsultationBookingListCreateView, ConsultationBookingCancelView, StudentBookingHistoryView, InstructorRosterView, AttendanceUpdateView, StudentProfileMetricView, InstructorSlotListCreateView, InstructorSlotDetailView
 
 urlpatterns = [
     path('student/login/', StudentLoginView.as_view(), name='student-login',),
@@ -16,5 +16,7 @@ urlpatterns = [
     path('students/me/history/', StudentBookingHistoryView.as_view(), name='student-booking-history'),
     path('instructors/me/roster/', InstructorRosterView.as_view(), name='instructor-roster'),
     path('bookings/<int:pk>/attendance/', AttendanceUpdateView.as_view(), name='attendance-update'),
-    path('students/me/profile-metrics/', StudentProfileMetricView.as_view(), name='student-profile-metric')
+    path('students/me/profile-metrics/', StudentProfileMetricView.as_view(), name='student-profile-metric'),
+    path('instructor/me/slots/', InstructorSlotListCreateView.as_view(), name='instructor-slot-list-create'),
+    path('instructor/me/slots/<int:pk>', InstructorSlotDetailView.as_view(), name='instructor-slot-detail')
 ]

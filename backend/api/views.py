@@ -259,7 +259,6 @@ class InstructorSlotDetailView(generics.RetrieveUpdateDestroyAPIView):
             return Response({"detail": "Cannot delete or cancel a slot that has active student bookings."},
                             status=status.HTTP_400_BAD_REQUEST
                             )
-
         instance.is_deleted = True
         instance.save()
 
