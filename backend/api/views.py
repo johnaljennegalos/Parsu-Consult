@@ -230,3 +230,38 @@ class StudentProfileMetricView(APIView):
         serializers = StudentProfileMetricsSerializer(request.user, context={'request' : request, 'metrics' : metrics_data})
 
         return Response(serializers.data, status=status.HTTP_200_OK)
+
+#GET and POST
+class InstructorSlotListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated, IsInstructor]
+    serializer_class = ConsultationSlotSerializer
+
+    def get_queryset(self):
+        return ConsultationSlot.objects.filter(teacher=self.request.user, is_deleted=False).order_by('date', 'start_time')
+
+    def perform_create(self, serializer):
+        serializer.save(teacher=self.request.user)
+
+
+#GET PATCH DELETE
+class InstructorSlotDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated, IsInstructor]
+    serializer_class = ConsultationSlotSerializer
+
+    def get_queryset(self):
+        return ConsultationSlot.objects.filter(teacher=self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        has_active_booking = ConsultationBooking.objects.filter(status__in=['PENDING', 'CONFIRMED'], slot=instance)
+
+        if has_active_booking.exists():
+            return Response({"detail": "Cannot delete or cancel a slot that has active student bookings."},
+                            status=status.HTTP_400_BAD_REQUEST
+                            )
+
+        instance.is_deleted = True
+        instance.save()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
