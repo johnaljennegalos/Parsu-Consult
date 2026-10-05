@@ -2,6 +2,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase, APIClient
 from django.contrib.auth import get_user_model
+from datetime import date, timedelta
 
 from api.models import ConsultationSlot
 
@@ -33,7 +34,7 @@ class InstructorSlotTest(APITestCase):
         self.client.force_authenticate(self.instructor_a)
 
         payload = {
-            'date' : '2026-09-29',
+            'date' : str(date.today() + timedelta(days=7)),
             'location' : 'Faculty Room',
             'start_time' : '10:00:00',
             'end_time' : '11:00:00',
@@ -43,7 +44,7 @@ class InstructorSlotTest(APITestCase):
         url = reverse('consultation-slot-list-create')
 
         response = self.client.post(url, data=payload, format='json')
-
+        print("VALIDATION ERROR:", response.data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(ConsultationSlot.objects.count(), 1)
         self.assertEqual(response.data['teacher'], self.instructor_a.pk)

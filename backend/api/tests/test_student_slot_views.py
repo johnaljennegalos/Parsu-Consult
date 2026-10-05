@@ -29,7 +29,7 @@ class StudentSlotAPITest(APITestCase):
 
         self.slot_a = ConsultationSlot.objects.create(
             teacher=self.instructor_1,
-            date='2026-09-29',
+            date='2026-10-05',
             start_time='10:00:00',
             end_time='11:00:00',
             location='Room 101',
@@ -40,7 +40,7 @@ class StudentSlotAPITest(APITestCase):
 
         self.slot_b = ConsultationSlot.objects.create(
             teacher=self.instructor_1,
-            date='2026-09-29',
+            date='2026-10-05',
             start_time='10:00:00',
             end_time='11:00:00',
             location='Room 101',
@@ -51,7 +51,7 @@ class StudentSlotAPITest(APITestCase):
 
         self.slot_c = ConsultationSlot.objects.create(
             teacher=self.instructor_1,
-            date='2026-09-29',
+            date='2026-10-05',
             start_time='10:00:00',
             end_time='11:00:00',
             location='Room 101',
@@ -62,7 +62,7 @@ class StudentSlotAPITest(APITestCase):
 
         self.slot_d = ConsultationSlot.objects.create(
             teacher=self.instructor_2,
-            date='2026-09-29',
+            date='2026-10-05',
             start_time='10:00:00',
             end_time='11:00:00',
             location='Room 101',

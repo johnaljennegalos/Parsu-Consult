@@ -180,7 +180,7 @@ class ConsultationBookingCancelView(generics.UpdateAPIView):
     serializer_class = ConsultationBookingSerializer
 
     def get_queryset(self):
-        return ConsultationBooking.objects.filter(student=self.request.user, status='CONFIRMED')
+        return ConsultationBooking.objects.filter(student=self.request.user, status__in=['PENDING', 'CONFIRMED'])
 
     def perform_update(self, serializer):
         serializer.save(status='CANCELLED')

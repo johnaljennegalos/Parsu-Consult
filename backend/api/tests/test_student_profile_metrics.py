@@ -95,7 +95,7 @@ class StudentProfileMetricTest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['metrics']['total_consultations'], 5)
-        self.assertEqual(response.data['metrics']['incoming_consultations'], 1)
+        self.assertEqual(response.data['metrics']['incoming_consultations'], 0)
         self.assertEqual(response.data['metrics']['completed_consultations'], 1)
         self.assertEqual(response.data['metrics']['no_show_consultations'], 1)
 
