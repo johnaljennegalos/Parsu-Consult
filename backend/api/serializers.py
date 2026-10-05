@@ -224,6 +224,88 @@ class ConsultationBookingSerializer(serializers.ModelSerializer):
 class InstructorBookingDecisionSerializer(serializers.ModelSerializer):
     class Meta:
         model = ConsultationBooking
+        fields = [
+            'id',
+            'slot',
+            'student',
+            'status',
+            'rejection_reason',
+            'created_at',
+            'updated_at'
+        ]
+
+    read_only_fields = ['id', 'slot', 'student', 'created_at', 'updated_at']
+
+    def validate(self, attrs):
+        if self.instance is None:
+            raise serializers.ValidationError({"non_field_errors": ["Instance is required for decision updates."]})
+
+        if self.instance.status != 'PENDING':
+            raise serializers.ValidationError({'status': "Cannot make decision. Booking is already processed."})
+
+        status = attrs.get('status')
+
+        if status and status not in ['CONFIRMED', 'REJECTED']:
+            raise serializers.ValidationError({'status': "Decision must be either CONFIRMED or REJECTED."})
+
+        if status == 'REJECTED':
+            reason = attrs.get('rejection_reason')
+            if not reason or not reason.strip():
+                raise serializers.ValidationError({'rejection_reason': "A rejection reason is required when declining a request."})
+
+        if status == 'CONFIRMED':
+            slot = self.instance.slot
+            count = self.instance.slot.bookings.filter(status='CONFIRMED').count()
+
+            if count >= slot.max_capacity:
+                raise serializers.ValidationError({'slot': "Cannot confirm booking. This slot has reached max capacity."})
+
+        return attrs
+
+    def update(self, instance, validated_data):
+        instance = super().update(instance, validated_data)
+
+        if instance.status == 'CONFIRMED':
+            confirmed_count = instance.slot.bookings.filter(status='CONFIRMED').count()
+
+            if confirmed_count >= instance.slot.max_capacity and instance.slot.is_available:
+                instance.slot.is_available = False
+                instance.slot.save(update_fields=['is_available'])
+
+        return instance
+
+
+class InstructorBookingDetailSerializer(serializers.ModelSerializer):
+    first_name = serializers.CharField(source='student.first_name', read_only=True)
+    last_name = serializers.CharField(source='student.last_name', read_only=True)
+    student_email = serializers.CharField(source='student.email', read_only=True)
+    slot_date = serializers.DateField(source='slot.date', read_only=True)
+    slot_start_time = serializers.TimeField(source='slot.start_time', read_only=True)
+    slot_end_time = serializers.TimeField(source='slot.end_time', read_only=True)
+    slot_location = serializers.CharField(source='slot.location', read_only=True)
+
+    class Meta:
+        model = ConsultationBooking
+        fields = [
+            'id',
+            'slot',
+            'student',
+            'status',
+            'reason',
+            'rejection_reason',
+            'created_at',
+            'updated_at',
+            'first_name',
+            'last_name',
+            'student_email',
+            'slot_date',
+            'slot_start_time',
+            'slot_end_time',
+            'slot_location'
+        ]
+
+        read_only_fields = fields
+
 
 
 
