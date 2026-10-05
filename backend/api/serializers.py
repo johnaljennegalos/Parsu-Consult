@@ -1,7 +1,7 @@
 from getpass import fallback_getpass
 
 from rest_framework import serializers
-from .models import User, ConsultationSlot, Appointment, Notification, ConsultationBooking
+from .models import User, ConsultationSlot, Notification, ConsultationBooking
 from django.db import transaction
 from django.db.models import Q
 from django.contrib.auth.password_validation import validate_password
@@ -215,11 +215,15 @@ class ConsultationBookingSerializer(serializers.ModelSerializer):
 
         user = self.context['request'].user
         # active_booking = slot.bookings.filter(status='CONFIRMED').count()
-        has_active_booking = slot.bookings.filter(student=user).exclude(status='CANCELLED').exists()
+        has_active_booking = slot.bookings.filter(student=user).exclude(status__in=['CANCELLED', 'REJECTED']).exists()
         if has_active_booking:
             raise serializers.ValidationError({"slot": "You already have an active booking for this slot."})
 
         return attrs
+
+class InstructorBookingDecisionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ConsultationBooking
 
 
 
@@ -306,98 +310,98 @@ class AttendanceUpdateSerializer(serializers.ModelSerializer):
 
 
 #for student post/put/patch
-class AppointmentSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Appointment
-        fields = [
-            'id',
-            'student',
-            'slot',
-            'status',
-            'reason',
-        ]
-
-        extra_kwargs = {
-            'student' : {'read_only' : True},
-            'status' : {'read_only' : True}
-        }
-
-    def validate(self, attrs):
-        request = self.context.get('request')
-        user = request.user
-        slot = attrs.get('slot', getattr(self.instance, 'slot', None))
-
-        if not slot:
-            raise serializers.ValidationError('A valid consultation slot is required')
-
-        if user.role != 'ST':
-            raise serializers.ValidationError("Only students can book consultation slots.")
-
-        with transaction.atomic():
-            locked_slot = ConsultationSlot.objects.select_for_update().get(id=slot.id)
-
-            if locked_slot.is_deleted or not locked_slot.is_available:
-                raise serializers.ValidationError({"slot": "This consultation slot is no longer available."})
-
-            existing_booking = Appointment.objects.filter(
-                slot=locked_slot,
-                student=user
-            ).filter(
-                Q(status='PENDING') | Q(status='APPROVED')
-            )
-
-            if self.instance:
-                existing_booking = existing_booking.exclude(pk=self.instance.pk)
-
-            if existing_booking.exists():
-                raise serializers.ValidationError('You already have an active booking')
-
-            if not self.instance:
-                active_bookings_count = Appointment.objects.filter(
-                    slot=locked_slot
-                ).filter(
-                    Q(status='PENDING') | Q(status='APPROVED')
-                ).count()
-
-                if active_bookings_count >= locked_slot.max_capacity:
-                    raise serializers.ValidationError({"slot": "This slot has reached its maximum capacity."})
-
-        return attrs
-
-    def create(self, validated_data):
-        validated_data['student'] = self.context['request'].user
-        return super().create(validated_data)
+# class AppointmentSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Appointment
+#         fields = [
+#             'id',
+#             'student',
+#             'slot',
+#             'status',
+#             'reason',
+#         ]
+#
+#         extra_kwargs = {
+#             'student' : {'read_only' : True},
+#             'status' : {'read_only' : True}
+#         }
+#
+#     def validate(self, attrs):
+#         request = self.context.get('request')
+#         user = request.user
+#         slot = attrs.get('slot', getattr(self.instance, 'slot', None))
+#
+#         if not slot:
+#             raise serializers.ValidationError('A valid consultation slot is required')
+#
+#         if user.role != 'ST':
+#             raise serializers.ValidationError("Only students can book consultation slots.")
+#
+#         with transaction.atomic():
+#             locked_slot = ConsultationSlot.objects.select_for_update().get(id=slot.id)
+#
+#             if locked_slot.is_deleted or not locked_slot.is_available:
+#                 raise serializers.ValidationError({"slot": "This consultation slot is no longer available."})
+#
+#             existing_booking = Appointment.objects.filter(
+#                 slot=locked_slot,
+#                 student=user
+#             ).filter(
+#                 Q(status='PENDING') | Q(status='APPROVED')
+#             )
+#
+#             if self.instance:
+#                 existing_booking = existing_booking.exclude(pk=self.instance.pk)
+#
+#             if existing_booking.exists():
+#                 raise serializers.ValidationError('You already have an active booking')
+#
+#             if not self.instance:
+#                 active_bookings_count = Appointment.objects.filter(
+#                     slot=locked_slot
+#                 ).filter(
+#                     Q(status='PENDING') | Q(status='APPROVED')
+#                 ).count()
+#
+#                 if active_bookings_count >= locked_slot.max_capacity:
+#                     raise serializers.ValidationError({"slot": "This slot has reached its maximum capacity."})
+#
+#         return attrs
+#
+#     def create(self, validated_data):
+#         validated_data['student'] = self.context['request'].user
+#         return super().create(validated_data)
 
 
 #for student/instructor UI (GET)
-class AppointmentDetailSerializer(serializers.ModelSerializer):
-    student = UserGeneralSerializer(read_only=True)
-
-    slot = ConsultationSlotDetailSerializer(read_only=True)
-
-    class Meta:
-        model = Appointment
-        fields = [
-            'id',
-            'student',
-            'slot',
-            'status',
-            'reason',
-            'rejection_reason',
-            'created_at',
-            'updated_at',
-        ]
+# class AppointmentDetailSerializer(serializers.ModelSerializer):
+#     student = UserGeneralSerializer(read_only=True)
+#
+#     slot = ConsultationSlotDetailSerializer(read_only=True)
+#
+#     class Meta:
+#         model = Appointment
+#         fields = [
+#             'id',
+#             'student',
+#             'slot',
+#             'status',
+#             'reason',
+#             'rejection_reason',
+#             'created_at',
+#             'updated_at',
+#         ]
 
 #both for student and instructors UI, also both for GET or PATCH
 class NotificationSerializer(serializers.ModelSerializer):
-    appointment = AppointmentDetailSerializer(read_only=True)
+    booking = ConsultationSlotDetailSerializer(read_only=True)
 
     class Meta:
         model = Notification
         fields = [
             'id',
             'recipient',
-            'appointment',
+            'booking',
             'title',
             'message',
             'is_read',
@@ -536,4 +540,6 @@ class StudentProfileMetricsSerializer(serializers.ModelSerializer):
         )
 
         return metrics_data
+
+
 

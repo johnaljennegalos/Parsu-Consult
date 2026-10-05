@@ -73,6 +73,8 @@ class ConsultationSlot(models.Model):
 
 class ConsultationBooking(models.Model):
     STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('REJECTED', 'Rejected'),
         ('CONFIRMED', 'Confirmed'),
         ('CANCELLED', 'Cancelled'),
         ('COMPLETED', 'Completed'),
@@ -81,51 +83,55 @@ class ConsultationBooking(models.Model):
 
     slot = models.ForeignKey(ConsultationSlot, on_delete=models.CASCADE, related_name='bookings')
     student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, limit_choices_to={'role' : 'ST'}, related_name='consultation_bookings')
-    status = models.CharField(default='CONFIRMED', choices=STATUS_CHOICES, max_length=10)
+    status = models.CharField(default='PENDING', choices=STATUS_CHOICES, max_length=10)
     created_at = models.DateTimeField(auto_now_add=True)
+    reason = models.TextField(blank=True)
+    rejection_reason = models.TextField(blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
                 fields = ['slot', 'student'],
-                condition=models.Q(status='CONFIRMED'),
+                condition=models.Q(status__in=['CANCELLED', 'REJECTED']),
                 name='unique_slot_student_booking'
             )
         ]
 
-class Appointment(models.Model):
-    APPOINTMENT_STATUS = [
-        ("PENDING", "Pending"),
-        ("APPROVED", "Approved"),
-        ("REJECTED", "Rejected"),
-        ("CANCELLED", "Cancelled"),
-        ("COMPLETED", "Completed")
-    ]
-
-    student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, limit_choices_to={'role': 'ST'}, related_name="appointments")
-    slot = models.ForeignKey(ConsultationSlot, on_delete=models.PROTECT, related_name="appointments")
-    status = models.CharField(default="PENDING", choices=APPOINTMENT_STATUS, max_length=100)
-    reason = models.TextField(blank=True)
-    rejection_reason = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields = ['student', 'slot'],
-                condition=~models.Q(status__in=['CANCELLED', 'REJECTED']),
-                name = 'unique_student_appointment_per_slot'
-            )
-        ]
-
-    def __str__(self):
-        return f"Appointment: {self.student.first_name} -> {self.slot} ({self.status})"
+# class Appointment(models.Model):
+#     APPOINTMENT_STATUS = [
+#         ("PENDING", "Pending"),
+#         ("APPROVED", "Approved"),
+#         ("REJECTED", "Rejected"),
+#         ("CANCELLED", "Cancelled"),
+#         ("COMPLETED", "Completed")
+#     ]
+#
+#     student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, limit_choices_to={'role': 'ST'}, related_name="appointments")
+#     slot = models.ForeignKey(ConsultationSlot, on_delete=models.PROTECT, related_name="appointments")
+#     status = models.CharField(default="PENDING", choices=APPOINTMENT_STATUS, max_length=100)
+#     reason = models.TextField(blank=True)
+#     rejection_reason = models.TextField(blank=True)
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     updated_at = models.DateTimeField(auto_now=True)
+#
+#     class Meta:
+#         constraints = [
+#             models.UniqueConstraint(
+#                 fields = ['student', 'slot'],
+#                 condition=~models.Q(status__in=['CANCELLED', 'REJECTED']),
+#                 name = 'unique_student_appointment_per_slot'
+#             )
+#         ]
+#
+#     def __str__(self):
+#         return f"Appointment: {self.student.first_name} -> {self.slot} ({self.status})"
 
 
 class Notification(models.Model):
     recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notifications")
-    appointment = models.ForeignKey(Appointment, blank=True, null=True, on_delete=models.SET_NULL, related_name="notifications")
+    booking = models.ForeignKey(ConsultationBooking, blank=True, null=True, on_delete=models.SET_NULL, related_name="notifications")
     title = models.CharField(max_length=100, blank=True)
     message = models.TextField(blank=True)
     is_read = models.BooleanField(default=False)

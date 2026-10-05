@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User, Student, Instructor, ConsultationSlot, Appointment, Notification
+from .models import User, Student, Instructor, ConsultationSlot, Notification, ConsultationBooking
 
 # Register your models here.
 
@@ -33,19 +33,25 @@ class ConsultationSlotAdmin(admin.ModelAdmin):
     search_fields = ['teacher__email', 'teacher__first_name', 'teacher__last_name']
 
 
-@admin.register(Appointment)
-class AppointmentAdmin(admin.ModelAdmin):
-    list_display = ['student', 'slot', 'status', 'reason', 'rejection_reason', 'created_at', 'updated_at']
-    list_filter = ['status', 'created_at', 'slot__teacher']
-    search_fields = ['student__first_name', 'student__last_name', 'slot__teacher__first_name']
+# @admin.register(Appointment)
+# class AppointmentAdmin(admin.ModelAdmin):
+#     list_display = ['student', 'slot', 'status', 'reason', 'rejection_reason', 'created_at', 'updated_at']
+#     list_filter = ['status', 'created_at', 'slot__teacher']
+#     search_fields = ['student__first_name', 'student__last_name', 'slot__teacher__first_name']
+#
+#     @admin.display(description="Instructor")
+#     def get_teacher(self, obj):
+#         return obj.slot.teacher
 
-    @admin.display(description="Instructor")
-    def get_teacher(self, obj):
-        return obj.slot.teacher
+@admin.register(ConsultationBooking)
+class ConsultationBookingAdmin(admin.ModelAdmin):
+    list_display = ['id', 'student', 'slot', 'status', 'created_at']
+    list_filter = ['status', 'created_at']
+    search_fields = ['student__email', 'student__first_name', 'student__last_name']
 
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
-    list_display = ['recipient', 'appointment', 'title', 'message', 'is_read', 'created_at']
+    list_display = ['id', 'booking', 'recipient', 'title', 'message', 'is_read', 'created_at']
     list_filter = ["is_read", "created_at", "recipient__role", "recipient__department"]
     search_fields = [
         "recipient__email",
