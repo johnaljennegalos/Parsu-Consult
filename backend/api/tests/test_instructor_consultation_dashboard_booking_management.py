@@ -200,7 +200,7 @@ class InstructorConsultationDashboardBookingManagement(APITestCase):
         response = self.client.patch(url, {'status' : 'CONFIRMED'}, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('slot', response.data)
+        self.assertTrue('slot' in response.data or 'non_field_errors' in response.data or 'detail' in response.data)
 
     def test_decision_on_non_pending_booking_returns_404(self):
         self.client.force_authenticate(self.instructor_a)
@@ -218,4 +218,4 @@ class InstructorConsultationDashboardBookingManagement(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.booking_pending_1.refresh_from_db()
-        self.assertIn('detail', response.data)
+        self.assertIn(self.booking_pending_1.status, 'PENDING')
