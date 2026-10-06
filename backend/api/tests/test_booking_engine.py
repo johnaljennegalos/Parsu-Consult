@@ -50,7 +50,7 @@ class BookingEngineAPITests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        db_query = ConsultationBooking.objects.filter(student=self.student_1, slot=self.instructor_slot, status='CONFIRMED').exists()
+        db_query = ConsultationBooking.objects.filter(student=self.student_1, slot=self.instructor_slot, status='PENDING').exists()
 
         self.assertTrue(db_query)
 
@@ -81,7 +81,7 @@ class BookingEngineAPITests(APITestCase):
 
         self.assertEqual(second_response.status_code, status.HTTP_400_BAD_REQUEST)
 
-        active_booking = ConsultationBooking.objects.filter(slot=self.instructor_slot, status='CONFIRMED').count() == 1
+        active_booking = ConsultationBooking.objects.filter(slot=self.instructor_slot, status='PENDING').count() == 1
 
         self.assertTrue(active_booking)
 
@@ -103,7 +103,7 @@ class BookingEngineAPITests(APITestCase):
 
         self.assertEqual(patch_response.status_code, status.HTTP_200_OK)
 
-        confirmed_count = ConsultationBooking.objects.filter(slot=self.instructor_slot, status='CONFIRMED').count()
+        confirmed_count = ConsultationBooking.objects.filter(slot=self.instructor_slot, status='PENDING').count()
 
         self.assertTrue(confirmed_count, 1)
 

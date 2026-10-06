@@ -10,7 +10,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q, Count
 from django.utils import timezone
 
-from .serializers import StudentLoginSerializer, StudentRegistrationSerializer, InstructorLoginSerializer, InstructorRegistrationSerializer, InstructorPublicProfileSerializer, ConsultationSlotSerializer, ConsultationBookingSerializer, ConsultationSlotDetailSerializer, StudentBookingHistorySerializer, InstructorRosterSerializer, AttendanceUpdateSerializer, StudentProfileMetricsSerializer
+from .serializers import StudentLoginSerializer, StudentRegistrationSerializer, InstructorLoginSerializer, InstructorRegistrationSerializer, InstructorPublicProfileSerializer, ConsultationSlotSerializer, ConsultationBookingSerializer, ConsultationSlotDetailSerializer, StudentBookingHistorySerializer, InstructorRosterSerializer, AttendanceUpdateSerializer, StudentProfileMetricsSerializer, InstructorBookingDetailSerializer, InstructorBookingDecisionSerializer
 
 from .permissions import IsStudent, IsInstructor
 from .models import User, ConsultationSlot, ConsultationBooking
@@ -180,7 +180,7 @@ class ConsultationBookingCancelView(generics.UpdateAPIView):
     serializer_class = ConsultationBookingSerializer
 
     def get_queryset(self):
-        return ConsultationBooking.objects.filter(student=self.request.user, status='CONFIRMED')
+        return ConsultationBooking.objects.filter(student=self.request.user, status__in=['PENDING', 'CONFIRMED'])
 
     def perform_update(self, serializer):
         serializer.save(status='CANCELLED')
@@ -263,4 +263,29 @@ class InstructorSlotDetailView(generics.RetrieveUpdateDestroyAPIView):
         instance.save()
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class InstructorBookingListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated, IsInstructor]
+    serializer_class = InstructorBookingDetailSerializer
+
+    def get_queryset(self):
+        queryset = ConsultationBooking.objects.filter(slot__teacher=self.request.user, slot__is_deleted=False).select_related('slot', 'student')
+
+        status_param = self.request.query_params.get('status')
+        if status_param:
+            queryset = queryset.filter(status=status_param.upper())
+
+        return queryset.order_by('-created_at')
+
+
+class InstructorBookingDecisionView(generics.UpdateAPIView):
+    permission_classes = [IsAuthenticated, IsInstructor]
+    serializer_class = InstructorBookingDecisionSerializer
+    http_method_names = ['patch']
+
+    def get_queryset(self):
+        return ConsultationBooking.objects.filter(slot__teacher=self.request.user, slot__is_deleted=False, status='PENDING').select_related('slot')
+
+
 
