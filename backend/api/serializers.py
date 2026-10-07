@@ -624,4 +624,33 @@ class StudentProfileMetricsSerializer(serializers.ModelSerializer):
         return metrics_data
 
 
+class InstructorAttendanceSerializer(serializers.ModelSerializer):
+    status = serializers.ChoiceField(
+        choices=[
+            ('COMPLETED', 'Completed'),
+            ('NO SHOW', 'No Show')
+        ]
+    )
+
+    class Meta:
+        model = ConsultationBooking
+        fields = ['id', 'status']
+        read_only_fields = ['id']
+
+    def validate(self, attrs):
+        booking = self.instance
+        current_date = timezone.now().date()
+        current_time = timezone.now().time()
+
+        if booking.status != 'CONFIRMED':
+            raise serializers.ValidationError({'status' : 'Attendance can only be marked for confirmed.'})
+
+        slot = booking.slot
+        is_past_date = slot.date < current_date
+        is_past_time_today = slot.date == current_date and slot.end_time <= current_time
+
+        if not (is_past_date or is_past_time_today):
+            raise serializers.ValidationError({'status' : 'Cannot mark attendance for a consultation that has not concluded yet.'})
+
+        return attrs
 
