@@ -1,3 +1,6 @@
+from gc import get_objects
+from logging import raiseExceptions
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -10,7 +13,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q, Count
 from django.utils import timezone
 
-from .serializers import StudentLoginSerializer, StudentRegistrationSerializer, InstructorLoginSerializer, InstructorRegistrationSerializer, InstructorPublicProfileSerializer, ConsultationSlotSerializer, ConsultationBookingSerializer, ConsultationSlotDetailSerializer, StudentBookingHistorySerializer, InstructorRosterSerializer, AttendanceUpdateSerializer, StudentProfileMetricsSerializer, InstructorBookingDetailSerializer, InstructorBookingDecisionSerializer
+from .serializers import StudentLoginSerializer, StudentRegistrationSerializer, InstructorLoginSerializer, InstructorRegistrationSerializer, InstructorPublicProfileSerializer, ConsultationSlotSerializer, ConsultationBookingSerializer, ConsultationSlotDetailSerializer, StudentBookingHistorySerializer, InstructorRosterSerializer, AttendanceUpdateSerializer, StudentProfileMetricsSerializer, InstructorBookingDetailSerializer, InstructorBookingDecisionSerializer, InstructorAttendanceSerializer
 
 from .permissions import IsStudent, IsInstructor
 from .models import User, ConsultationSlot, ConsultationBooking
@@ -287,5 +290,20 @@ class InstructorBookingDecisionView(generics.UpdateAPIView):
     def get_queryset(self):
         return ConsultationBooking.objects.filter(slot__teacher=self.request.user, slot__is_deleted=False, status='PENDING').select_related('slot')
 
+
+class InstructorBookingAttendanceView(generics.UpdateAPIView):
+    permission_classes = [IsAuthenticated, IsInstructor]
+    serializer_class = InstructorAttendanceSerializer
+    http_method_names = ['patch']
+
+    def get_queryset(self):
+        return ConsultationBooking.objects.filter(slot__teacher=self.request.user)
+
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
