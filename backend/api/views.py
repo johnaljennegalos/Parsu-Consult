@@ -373,8 +373,8 @@ class InstructorAnalyticsView(APIView):
             'total_hours_consulted': final_hours,
         }
 
-        serializers = InstructorAnalyticsSerializer(data=analytics_payload)
-        serializers.is_valid(raise_exception=True)
+        serializers = InstructorAnalyticsSerializer(analytics_payload)
+        # serializers.is_valid(raise_exception=True)
         return Response(serializers.data, status=status.HTTP_200_OK)
 
 
