@@ -12,8 +12,10 @@ from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import get_user_model
 from django.db.models import Q, Count
 from django.utils import timezone
+from datetime import datetime, timedelta
 
-from .serializers import StudentLoginSerializer, StudentRegistrationSerializer, InstructorLoginSerializer, InstructorRegistrationSerializer, InstructorPublicProfileSerializer, ConsultationSlotSerializer, ConsultationBookingSerializer, ConsultationSlotDetailSerializer, StudentBookingHistorySerializer, InstructorRosterSerializer, AttendanceUpdateSerializer, StudentProfileMetricsSerializer, InstructorBookingDetailSerializer, InstructorBookingDecisionSerializer, InstructorAttendanceSerializer
+
+from .serializers import StudentLoginSerializer, StudentRegistrationSerializer, InstructorLoginSerializer, InstructorRegistrationSerializer, InstructorPublicProfileSerializer, ConsultationSlotSerializer, ConsultationBookingSerializer, ConsultationSlotDetailSerializer, StudentBookingHistorySerializer, InstructorRosterSerializer, AttendanceUpdateSerializer, StudentProfileMetricsSerializer, InstructorBookingDetailSerializer, InstructorBookingDecisionSerializer, InstructorAttendanceSerializer, InstructorAnalyticsSerializer
 
 from .permissions import IsStudent, IsInstructor
 from .models import User, ConsultationSlot, ConsultationBooking
@@ -305,5 +307,76 @@ class InstructorBookingAttendanceView(generics.UpdateAPIView):
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class InstructorAnalyticsView(APIView):
+    permission_classes = [IsAuthenticated, IsInstructor]
+    serializer_class = InstructorAnalyticsSerializer
+
+    def get(self, request):
+        user = request.user
+        now = timezone.now()
+        current_date = now.date()
+        current_time = now.time()
+
+        base_query = ConsultationBooking.objects.filter(slot__teacher=user)
+
+        metrics = base_query.aggregate(
+            total_consultations=Count('id'),
+            completed_consultations=Count('id', filter=Q(status='COMPLETED')),
+            no_show_consultations=Count('id', filter=Q(status='NO SHOW')),
+            cancelled_consultations=Count('id', filter=Q(status__in=['CANCELLED', 'REJECTED'])),
+            upcoming_confirmed_count=Count(
+                'id',
+                filter=Q(status='CONFIRMED') & (
+                    Q(slot__date__gt=current_date) |
+                    Q(slot__date=current_date, slot__start_time__gt=current_time)
+                )
+            )
+        )
+
+        completed_consultations = base_query.filter(status='COMPLETED').select_related('slot')
+
+        total_seconds = 0.00
+
+        for bookings in completed_consultations:
+            slot_date = bookings.slot.date
+            start_time = bookings.slot.start_time
+            end_time = bookings.slot.end_time
+
+            start_datetime = datetime.combine(slot_date, start_time)
+            end_datetime = datetime.combine(slot_date, end_time)
+
+            if end_datetime < start_datetime:
+                end_datetime += timedelta(days=1)
+
+            duration = end_datetime - start_datetime
+
+            total_seconds += duration.total_seconds()
+
+        final_hours = round(total_seconds / 3600.0, 2)
+
+        total_consultations = metrics['completed_consultations'] + metrics['no_show_consultations']
+
+        if total_consultations > 0:
+            rate = round((metrics['completed_consultations'] / total_consultations) * 100.0, 2)
+        else:
+            rate = 0.00
+
+        analytics_payload = {
+            'total_consultations': metrics['total_consultations'],
+            'completed_consultations': metrics['completed_consultations'],
+            'no_show_consultations': metrics['no_show_consultations'],
+            'cancelled_consultations': metrics['cancelled_consultations'],
+            'upcoming_confirmed_count': metrics['upcoming_confirmed_count'],
+            'completion_rate': rate,
+            'total_hours_consulted': final_hours,
+        }
+
+        serializers = InstructorAnalyticsSerializer(data=analytics_payload)
+        serializers.is_valid(raise_exception=True)
+        return Response(serializers.data, status=status.HTTP_200_OK)
+
+
 
 
